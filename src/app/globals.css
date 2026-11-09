@@ -1,26 +1,168 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Crimson Sci-Fi Design System */
+    --bg-primary: #090909;
+    --bg-secondary: #111111;
+    --bg-deep: #050505;
+    --crimson-deep: #190707;
+    --crimson-card: #250A0A;
+    --accent-red: #E50914;
+    --accent-glow: #FF3028;
+    --silver: #B9B9B9;
+    --text-primary: #F5F5F5;
+    --text-muted: #858585;
+    --success: #16A34A;
+    --warning: #D6A84B;
+    --border: rgba(185, 185, 185, 0.12);
+    --border-red: rgba(229, 9, 20, 0.3);
+    
+    /* shadcn/ui variables remapped to our theme */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 96%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 96%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 354 93% 47%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 7%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 0 0% 7%;
+    --muted-foreground: 0 0% 52%;
+    --accent: 354 93% 47%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 10%;
+    --input: 0 0% 10%;
+    --ring: 354 93% 47%;
+    --radius: 0.5rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    border-color: rgba(185, 185, 185, 0.12);
+  }
+
+  body {
+    background-color: #090909;
+    color: #F5F5F5;
+    font-family: 'Inter', 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #090909;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #E50914;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #FF3028;
+  }
+}
+
+@layer utilities {
+  /* Red glow effects */
+  .glow-red {
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.4), 0 0 40px rgba(229, 9, 20, 0.2);
+  }
+
+  .glow-red-sm {
+    box-shadow: 0 0 8px rgba(229, 9, 20, 0.3);
+  }
+
+  .glow-red-text {
+    text-shadow: 0 0 20px rgba(229, 9, 20, 0.6), 0 0 40px rgba(229, 9, 20, 0.3);
+  }
+
+  /* Card styles */
+  .card-dark {
+    background-color: #111111;
+    border: 1px solid rgba(185, 185, 185, 0.08);
+    border-radius: 8px;
+  }
+
+  .card-crimson {
+    background-color: #190707;
+    border: 1px solid rgba(229, 9, 20, 0.2);
+    border-radius: 8px;
+  }
+
+  /* Rank number styling */
+  .rank-number {
+    font-family: 'Space Grotesk', 'Rajdhani', monospace;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  /* Gradient backgrounds */
+  .bg-crimson-gradient {
+    background: radial-gradient(ellipse at center, rgba(229, 9, 20, 0.15) 0%, transparent 70%);
+  }
+
+  .bg-reveal-gradient {
+    background: radial-gradient(ellipse at 50% 60%, rgba(229, 9, 20, 0.25) 0%, rgba(37, 10, 10, 0.5) 40%, #050505 80%);
+  }
+
+  /* Animation helpers */
+  .animate-pulse-red {
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-red {
+    0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(229, 9, 20, 0.3); }
+    50% { opacity: 0.8; box-shadow: 0 0 25px rgba(229, 9, 20, 0.6); }
+  }
+
+  /* Concealed row effect */
+  .row-concealed {
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(229, 9, 20, 0.05) 0px,
+      rgba(229, 9, 20, 0.05) 4px,
+      transparent 4px,
+      transparent 12px
+    );
+  }
+
+  /* Top positions */
+  .rank-gold {
+    color: #FFD700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  }
+
+  .rank-silver {
+    color: #C0C0C0;
+    text-shadow: 0 0 10px rgba(192, 192, 192, 0.4);
+  }
+
+  .rank-bronze {
+    color: #CD7F32;
+    text-shadow: 0 0 10px rgba(205, 127, 50, 0.4);
+  }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
