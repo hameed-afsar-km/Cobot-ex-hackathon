@@ -117,7 +117,6 @@ export default function AdminLeaderboardPage() {
                 </td>
                 <td className="px-4 py-3">
                   <p className="font-medium text-[#F5F5F5]">{entry.teamName}</p>
-                  <p className="text-xs text-[#858585] font-mono">{entry.teamId}</p>
                 </td>
                 {competition.rounds.map(r => (
                   <td key={r.id} className="px-3 py-3 text-center">

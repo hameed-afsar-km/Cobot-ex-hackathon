@@ -3,11 +3,12 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { FileSpreadsheet, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { read as xlsxRead, utils as xlsxUtils } from 'xlsx';
 import { validateAndMapRows, summarizeImportResults } from '@/lib/utils/importValidation';
-import { getExistingTeamIds, batchImportTeams } from '@/lib/services/teamService';
+import { getExistingTeamNames, batchImportTeams } from '@/lib/services/teamService';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { logActivity } from '@/lib/services/adminService';
 import { useAuth } from '@/hooks/useAuth';
 import type { ImportedTeamRow, ImportSummary } from '@/types/team';
@@ -26,11 +27,14 @@ export default function ImportTeamsPage() {
   const [fileName, setFileName] = useState('');
   const [columns, setColumns] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<Record<string, string>[]>([]);
-  const [teamIdCol, setTeamIdCol] = useState('');
   const [teamNameCol, setTeamNameCol] = useState('');
+  const [participantNameCol, setParticipantNameCol] = useState('');
+  const [registrationTypeCol, setRegistrationTypeCol] = useState('');
+  const [teamMember2Col, setTeamMember2Col] = useState('');
   const [results, setResults] = useState<ImportedTeamRow[]>([]);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
   const [importing, setImporting] = useState(false);
+  const [showDuplicatePrompt, setShowDuplicatePrompt] = useState(false);
 
   const handleFile = useCallback(async (file: File) => {
     if (!file) return;
@@ -46,8 +50,23 @@ export default function ImportTeamsPage() {
     const cols = Object.keys(rows[0]);
     setColumns(cols);
     setRawRows(rows);
-    setTeamIdCol(cols.find(c => /id/i.test(c)) ?? cols[0]);
-    setTeamNameCol(cols.find(c => /name/i.test(c)) ?? cols[1] ?? cols[0]);
+    setTeamNameCol(
+      cols.find(c => /team\s*name/i.test(c) && !/member|participant/i.test(c)) ??
+      cols.find(c => /^team$/i.test(c)) ??
+      cols.find(c => /name/i.test(c) && !/participant|member/i.test(c)) ??
+      cols[0]
+    );
+    setParticipantNameCol(
+      cols.find(c => /participant\s*name/i.test(c)) ??
+      cols.find(c => /^participant/i.test(c)) ??
+      ''
+    );
+    setRegistrationTypeCol(
+      cols.find(c => /registration\s*type|reg\.?\s*type/i.test(c)) ?? ''
+    );
+    setTeamMember2Col(
+      cols.find(c => /member\s*2.*name|2\s*-?\s*name/i.test(c)) ?? ''
+    );
     setStep('map');
   }, []);
 
@@ -59,31 +78,40 @@ export default function ImportTeamsPage() {
   }, [handleFile]);
 
   const handlePreview = async () => {
-    if (!teamIdCol || !teamNameCol) {
-      toast.error('Please select Team ID and Team Name columns');
+    if (!teamNameCol || !participantNameCol) {
+      toast.error('Please select the Team Name and Participant Name columns');
       return;
     }
-    const existingIds = await getExistingTeamIds();
+    const existingNames = await getExistingTeamNames();
     const { results: mapped } = validateAndMapRows(rawRows, {
-      teamId: teamIdCol,
       teamName: teamNameCol,
-      memberFields: [],
-    }, existingIds);
+      participantName: participantNameCol,
+      registrationType: registrationTypeCol || undefined,
+      teamMember2Name: teamMember2Col || undefined,
+    }, existingNames);
     setResults(mapped);
     setSummary(summarizeImportResults(mapped));
     setStep('preview');
   };
 
-  const handleImport = async () => {
-    const validRows = results.filter(r => r.status === 'valid');
-    if (validRows.length === 0) {
-      toast.error('No valid rows to import');
+  const runImport = async (includeDuplicates: boolean) => {
+    const duplicateRows = results.filter(r => r.status === 'duplicate');
+    const rowsToImport = includeDuplicates
+      ? results.filter(r => r.status === 'valid' || r.status === 'duplicate')
+      : results.filter(r => r.status === 'valid');
+
+    if (rowsToImport.length === 0) {
+      toast.error('No teams to import');
       return;
     }
+    if (!includeDuplicates && duplicateRows.length > 0) {
+      toast.info(`${duplicateRows.length} duplicate team(s) skipped`);
+    }
+
     setImporting(true);
     try {
       const { success, failed } = await batchImportTeams(
-        validRows.map(r => ({ teamId: r.teamId, teamName: r.teamName, members: r.members })),
+        rowsToImport.map(r => ({ teamName: r.teamName, members: r.members })),
         adminUser!.uid
       );
       await logActivity(adminUser!.uid, adminUser!.email, 'team_import', {
@@ -98,6 +126,15 @@ export default function ImportTeamsPage() {
     } finally {
       setImporting(false);
     }
+  };
+
+  const handleImportClick = () => {
+    const duplicates = results.filter(r => r.status === 'duplicate').length;
+    if (duplicates > 0) {
+      setShowDuplicatePrompt(true);
+      return;
+    }
+    void runImport(false);
   };
 
   return (
@@ -162,7 +199,7 @@ export default function ImportTeamsPage() {
           />
           <div className="mt-4 p-4 card-dark rounded-xl text-sm text-[#858585]">
             <p className="font-medium text-[#B9B9B9] mb-2">Expected format:</p>
-            <code className="text-xs">Team ID | Team Name | Member 1 | Member 2 | Member 3 | ...</code>
+            <code className="text-xs">Team Name | Registration Type | Participant Name | Team Member 2-Name</code>
           </div>
         </motion.div>
       )}
@@ -172,18 +209,7 @@ export default function ImportTeamsPage() {
           <div className="card-dark rounded-xl p-6">
             <h2 className="font-semibold text-[#F5F5F5] mb-1">Map Columns</h2>
             <p className="text-sm text-[#858585] mb-6">File: {fileName} · {rawRows.length} rows detected</p>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-[#858585] mb-2 block">Team ID Column *</Label>
-                <Select value={teamIdCol} onValueChange={(val) => setTeamIdCol(val ?? '')}>
-                  <SelectTrigger className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5]">
-                    <SelectValue placeholder="Select column" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#111] border-[rgba(185,185,185,0.12)] text-[#F5F5F5]">
-                    {columns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-[#858585] mb-2 block">Team Name Column *</Label>
                 <Select value={teamNameCol} onValueChange={(val) => setTeamNameCol(val ?? '')}>
@@ -195,9 +221,42 @@ export default function ImportTeamsPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label className="text-xs text-[#858585] mb-2 block">Participant Name Column *</Label>
+                <Select value={participantNameCol} onValueChange={(val) => setParticipantNameCol(val ?? '')}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5]">
+                    <SelectValue placeholder="Select column" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111] border-[rgba(185,185,185,0.12)] text-[#F5F5F5]">
+                    {columns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-[#858585] mb-2 block">Registration Type Column</Label>
+                <Select value={registrationTypeCol} onValueChange={(val) => setRegistrationTypeCol(val ?? '')}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5]">
+                    <SelectValue placeholder="Select column" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111] border-[rgba(185,185,185,0.12)] text-[#F5F5F5]">
+                    {columns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs text-[#858585] mb-2 block">Team Member 2 Name Column</Label>
+                <Select value={teamMember2Col} onValueChange={(val) => setTeamMember2Col(val ?? '')}>
+                  <SelectTrigger className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5]">
+                    <SelectValue placeholder="Select column" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111] border-[rgba(185,185,185,0.12)] text-[#F5F5F5]">
+                    {columns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <p className="text-xs text-[#858585] mt-4">
-              Member columns will be auto-detected (Member 1, Member 2, etc.)
+              Individual registrations get 1 member; team registrations get the participant plus the second member when present.
             </p>
           </div>
           <div className="flex gap-3">
@@ -237,7 +296,6 @@ export default function ImportTeamsPage() {
               <thead className="sticky top-0 bg-[#111]">
                 <tr className="border-b border-[rgba(185,185,185,0.08)]">
                   <th className="px-3 py-2 text-left text-[#858585]">Status</th>
-                  <th className="px-3 py-2 text-left text-[#858585]">Team ID</th>
                   <th className="px-3 py-2 text-left text-[#858585]">Team Name</th>
                   <th className="px-3 py-2 text-left text-[#858585]">Members</th>
                   <th className="px-3 py-2 text-left text-[#858585]">Issues</th>
@@ -251,9 +309,8 @@ export default function ImportTeamsPage() {
                       {r.status === 'duplicate' && <AlertTriangle className="w-3.5 h-3.5 text-[#D6A84B]" />}
                       {r.status === 'invalid' && <XCircle className="w-3.5 h-3.5 text-[#E50914]" />}
                     </td>
-                    <td className="px-3 py-2 font-mono text-[#B9B9B9]">{r.teamId || '—'}</td>
                     <td className="px-3 py-2 text-[#F5F5F5]">{r.teamName || '—'}</td>
-                    <td className="px-3 py-2 text-[#858585]">{r.members.length}</td>
+                    <td className="px-3 py-2 text-[#858585]">{r.members.map(m => m.name).join(', ') || '—'}</td>
                     <td className="px-3 py-2 text-[#E50914]">{r.errors.join(', ')}</td>
                   </tr>
                 ))}
@@ -261,17 +318,24 @@ export default function ImportTeamsPage() {
             </table>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
             <Button
-              onClick={handleImport}
-              disabled={importing || summary.valid === 0}
+              onClick={handleImportClick}
+              disabled={importing || (summary.valid === 0 && summary.duplicates === 0)}
               className="bg-[#E50914] hover:bg-[#FF3028] text-white"
             >
-              {importing ? 'Importing...' : `Import ${summary.valid} Valid Teams`}
+              {importing
+                ? 'Importing...'
+                : summary.duplicates > 0
+                ? 'Import Teams...'
+                : `Import ${summary.valid} Valid Teams`}
             </Button>
             <Button variant="outline" onClick={() => setStep('map')} className="border-[rgba(185,185,185,0.2)] text-[#858585]">
               Back
             </Button>
+            <p className="text-xs text-[#858585]">
+              Duplicate team names are reviewed before import.
+            </p>
           </div>
         </motion.div>
       )}
@@ -296,6 +360,17 @@ export default function ImportTeamsPage() {
           </div>
         </motion.div>
       )}
+
+      <ConfirmDialog
+        open={showDuplicatePrompt}
+        onOpenChange={setShowDuplicatePrompt}
+        title="Duplicate teams found"
+        description={`${results.filter(r => r.status === 'duplicate').length} row(s) have duplicate team names. Import them anyway, or skip the duplicates and import only new teams?`}
+        confirmLabel="Import All"
+        cancelLabel="Skip Duplicates"
+        onConfirm={() => void runImport(true)}
+        onCancel={() => void runImport(false)}
+      />
     </div>
   );
 }

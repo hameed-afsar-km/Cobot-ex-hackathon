@@ -25,20 +25,20 @@ export async function getTeam(teamId: string): Promise<Team | null> {
 }
 
 export async function createTeam(
-  teamId: string,
   teamName: string,
   members: TeamMember[],
   createdBy: string
 ): Promise<Team> {
+  const ref = doc(teamsCol());
   const team: Team = {
-    id: teamId,
+    id: ref.id,
     teamName,
     members,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     createdBy,
   };
-  await setDoc(doc(db, COLLECTIONS.TEAMS, teamId), team);
+  await setDoc(ref, team);
   return team;
 }
 
@@ -61,13 +61,13 @@ export async function teamExists(teamId: string): Promise<boolean> {
   return snap.exists();
 }
 
-export async function getExistingTeamIds(): Promise<Set<string>> {
+export async function getExistingTeamNames(): Promise<Set<string>> {
   const teams = await getAllTeams();
-  return new Set(teams.map(t => t.id));
+  return new Set(teams.map(t => t.teamName.trim().toLowerCase()));
 }
 
 export async function batchImportTeams(
-  teams: Array<{ teamId: string; teamName: string; members: TeamMember[] }>,
+  teams: Array<{ teamName: string; members: TeamMember[] }>,
   createdBy: string
 ): Promise<{ success: string[]; failed: string[] }> {
   const success: string[] = [];
@@ -75,10 +75,10 @@ export async function batchImportTeams(
 
   for (const t of teams) {
     try {
-      await createTeam(t.teamId, t.teamName, t.members, createdBy);
-      success.push(t.teamId);
+      const team = await createTeam(t.teamName, t.members, createdBy);
+      success.push(team.id);
     } catch {
-      failed.push(t.teamId);
+      failed.push(t.teamName);
     }
   }
 

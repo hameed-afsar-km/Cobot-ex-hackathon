@@ -18,7 +18,6 @@ export interface Team {
 }
 
 export interface ImportedTeamRow {
-  teamId: string;
   teamName: string;
   members: TeamMember[];
   rawRow: Record<string, string>;
@@ -32,12 +31,12 @@ export interface ImportSummary {
   duplicates: number;
   invalid: number;
   failed: number;
-  importedIds: string[];
 }
 
 export type ColumnMapping = {
-  teamId: string;
   teamName: string;
-  memberFields: { column: string; field: keyof TeamMember }[];
+  participantName: string;
+  registrationType?: string;
+  teamMember2Name?: string;
 };
 

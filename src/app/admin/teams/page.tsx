@@ -34,7 +34,6 @@ function TeamRow({
 }) {
   return (
     <tr className="border-b border-[rgba(185,185,185,0.06)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-      <td className="px-4 py-3 text-sm text-[#858585] font-mono">{team.id}</td>
       <td className="px-4 py-3">
         <span className="font-medium text-[#F5F5F5]">{team.teamName}</span>
       </td>
@@ -84,9 +83,8 @@ function TeamFormDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   team?: Team;
-  onSave: (id: string, name: string, members: TeamMember[]) => Promise<void>;
+  onSave: (name: string, members: TeamMember[]) => Promise<void>;
 }) {
-  const [teamId, setTeamId] = useState(team?.id ?? '');
   const [teamName, setTeamName] = useState(team?.teamName ?? '');
   const [membersText, setMembersText] = useState(
     team?.members.map(m => m.name).join('\n') ?? ''
@@ -94,8 +92,8 @@ function TeamFormDialog({
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!teamId.trim() || !teamName.trim()) {
-      toast.error('Team ID and name are required');
+    if (!teamName.trim()) {
+      toast.error('Team name is required');
       return;
     }
     const members: TeamMember[] = membersText
@@ -106,7 +104,7 @@ function TeamFormDialog({
 
     setSaving(true);
     try {
-      await onSave(teamId.trim(), teamName.trim(), members);
+      await onSave(teamName.trim(), members);
       onOpenChange(false);
     } finally {
       setSaving(false);
@@ -120,16 +118,6 @@ function TeamFormDialog({
           <DialogTitle>{team ? 'Edit Team' : 'Add Team'}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 mt-2">
-          <div>
-            <Label className="text-xs text-[#858585] mb-1.5 block">Team ID *</Label>
-            <Input
-              value={teamId}
-              onChange={e => setTeamId(e.target.value)}
-              disabled={!!team}
-              placeholder="e.g. TEAM001"
-              className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5] placeholder:text-[#858585]"
-            />
-          </div>
           <div>
             <Label className="text-xs text-[#858585] mb-1.5 block">Team Name *</Label>
             <Input
@@ -193,14 +181,13 @@ export default function TeamsPage() {
   useEffect(() => { loadTeams(); }, [loadTeams]);
 
   const filtered = teams.filter(t =>
-    t.teamName.toLowerCase().includes(search.toLowerCase()) ||
-    t.id.toLowerCase().includes(search.toLowerCase())
+    t.teamName.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAdd = async (id: string, name: string, members: TeamMember[]) => {
-    await createTeam(id, name, members, adminUser!.uid);
+  const handleAdd = async (name: string, members: TeamMember[]) => {
+    const team = await createTeam(name, members, adminUser!.uid);
     await logActivity(adminUser!.uid, adminUser!.email, 'team_create', {
-      affectedRecord: id,
+      affectedRecord: team.id,
       affectedRecordType: 'team',
       newValue: { teamName: name },
     });
@@ -208,10 +195,11 @@ export default function TeamsPage() {
     await loadTeams();
   };
 
-  const handleEdit = async (id: string, name: string, members: TeamMember[]) => {
-    await updateTeam(id, { teamName: name, members });
+  const handleEdit = async (name: string, members: TeamMember[]) => {
+    if (!editTeam) return;
+    await updateTeam(editTeam.id, { teamName: name, members });
     await logActivity(adminUser!.uid, adminUser!.email, 'team_update', {
-      affectedRecord: id,
+      affectedRecord: editTeam.id,
       affectedRecordType: 'team',
       newValue: { teamName: name },
     });
@@ -297,7 +285,6 @@ export default function TeamsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[rgba(185,185,185,0.08)] bg-[rgba(255,255,255,0.02)]">
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#858585] uppercase tracking-wider">ID</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-[#858585] uppercase tracking-wider">Team Name</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-[#858585] uppercase tracking-wider">Members</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-[#858585] uppercase tracking-wider">Created</th>

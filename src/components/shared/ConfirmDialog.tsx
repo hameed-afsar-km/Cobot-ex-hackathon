@@ -20,6 +20,7 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
+  onCancel?: () => void;
   variant?: 'default' | 'destructive';
 }
 
@@ -31,6 +32,7 @@ export function ConfirmDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   onConfirm,
+  onCancel,
   variant = 'default',
 }: ConfirmDialogProps) {
   return (
@@ -43,7 +45,10 @@ export function ConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="bg-transparent border-[rgba(185,185,185,0.2)] text-[#858585] hover:bg-[#1a1a1a] hover:text-[#F5F5F5]">
+          <AlertDialogCancel
+            onClick={onCancel}
+            className="bg-transparent border-[rgba(185,185,185,0.2)] text-[#858585] hover:bg-[#1a1a1a] hover:text-[#F5F5F5]"
+          >
             {cancelLabel}
           </AlertDialogCancel>
           <AlertDialogAction

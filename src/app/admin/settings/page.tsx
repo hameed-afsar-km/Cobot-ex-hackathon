@@ -25,6 +25,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Shield, Save, Database, Sparkles } from 'lucide-react';
 import type { Criterion, TieBreakPolicy } from '@/types/competition';
+import type { Team } from '@/types/team';
 
 export default function SettingsPage() {
   const { competition, loading } = useCompetition();
@@ -99,16 +100,17 @@ export default function SettingsPage() {
       const comp = await initializeCompetition('Cobot-ex Championship 2026', adminUser?.uid || 'system');
       
       const demoTeams = [
-        { id: 'CBX-01', name: 'CyberTitan Dynamics', members: [{ name: 'Alex Vance' }, { name: 'Elena Rostova' }] },
-        { id: 'CBX-02', name: 'Nexus Automata', members: [{ name: 'Marcus Chen' }, { name: 'Sarah Connor' }] },
-        { id: 'CBX-03', name: 'Kinetics Vanguard', members: [{ name: 'David Mercer' }, { name: 'Rachel Tyrell' }] },
-        { id: 'CBX-04', name: 'Aegis Mechanics', members: [{ name: 'Victor Stone' }, { name: 'Ada Lovelace' }] },
-        { id: 'CBX-05', name: 'Quantum Bionics', members: [{ name: 'Grace Hopper' }, { name: 'Alan Turing' }] },
-        { id: 'CBX-06', name: 'Omega Synapse', members: [{ name: 'Nikola Tesla' }, { name: 'Hedy Lamarr' }] },
+        { name: 'CyberTitan Dynamics', members: [{ name: 'Alex Vance' }, { name: 'Elena Rostova' }] },
+        { name: 'Nexus Automata', members: [{ name: 'Marcus Chen' }, { name: 'Sarah Connor' }] },
+        { name: 'Kinetics Vanguard', members: [{ name: 'David Mercer' }, { name: 'Rachel Tyrell' }] },
+        { name: 'Aegis Mechanics', members: [{ name: 'Victor Stone' }, { name: 'Ada Lovelace' }] },
+        { name: 'Quantum Bionics', members: [{ name: 'Grace Hopper' }, { name: 'Alan Turing' }] },
+        { name: 'Omega Synapse', members: [{ name: 'Nikola Tesla' }, { name: 'Hedy Lamarr' }] },
       ];
 
+      const createdTeams: Team[] = [];
       for (const t of demoTeams) {
-        await createTeam(t.id, t.name, t.members, adminUser?.uid || 'system');
+        createdTeams.push(await createTeam(t.name, t.members, adminUser?.uid || 'system'));
       }
 
       // Add scores for Round 1 and Round 2
@@ -130,8 +132,8 @@ export default function SettingsPage() {
         [7, 7, 7, 7, 6],  // 34 -> 67
       ];
 
-      for (let i = 0; i < demoTeams.length; i++) {
-        const team = demoTeams[i];
+      for (let i = 0; i < createdTeams.length; i++) {
+        const team = createdTeams[i];
         const r1Criteria = comp.criteria.map((c, ci) => ({ criterionId: c.id, value: scoresR1[i][ci] }));
         const r2Criteria = comp.criteria.map((c, ci) => ({ criterionId: c.id, value: scoresR2[i][ci] }));
 

@@ -155,6 +155,22 @@ export async function linkAdminOnLogin(user: User): Promise<AdminUser | null> {
 
 // ─── Activity logging ──────────────────────────────────────────────────────────
 
+function removeUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .filter(v => v !== undefined)
+      .map(v => removeUndefined(v)) as T;
+  }
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, removeUndefined(v)])
+    ) as T;
+  }
+  return value;
+}
+
 export async function logActivity(
   adminUid: string,
   adminEmail: string,
@@ -182,7 +198,7 @@ export async function logActivity(
     metadata: options?.metadata,
     timestamp: Date.now(),
   };
-  await setDoc(logRef, log);
+  await setDoc(logRef, removeUndefined(log));
 }
 
 export async function getActivityLogs(options?: {

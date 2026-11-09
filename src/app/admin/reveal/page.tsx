@@ -217,10 +217,7 @@ export default function RevealAdminPage() {
               <div key={team.teamId} className="flex items-center justify-between p-3 card-dark rounded-lg">
                 <div className="flex items-center gap-3">
                   <span className="text-lg">{pos.split(' ')[0]}</span>
-                  <div>
-                    <p className="font-medium text-[#F5F5F5]">{team.teamName}</p>
-                    <p className="text-xs text-[#858585] font-mono">{team.teamId}</p>
-                  </div>
+                  <p className="font-medium text-[#F5F5F5]">{team.teamName}</p>
                 </div>
                 <span className="text-xl font-bold text-[#F5F5F5] rank-number">
                   {team.finalScore}<span className="text-sm text-[#858585] font-normal">/150</span>

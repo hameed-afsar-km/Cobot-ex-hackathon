@@ -50,7 +50,7 @@ function TeamDetailsContent() {
     return (
       <div className="min-h-screen bg-[#090909] flex flex-col items-center justify-center p-4">
         <h1 className="text-xl font-bold text-[#F5F5F5] mb-2">Team Not Found</h1>
-        <p className="text-[#858585] text-sm mb-4">No team exists with ID: {teamId}</p>
+        <p className="text-[#858585] text-sm mb-4">This team could not be found.</p>
         <Link href="/">
           <Button variant="outline" className="border-[rgba(229,9,20,0.3)] text-[#E50914]">
             Back to Leaderboard
@@ -83,9 +83,6 @@ function TeamDetailsContent() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#111] text-[#E50914] font-mono border border-[rgba(229,9,20,0.3)]">
-                  {team.id}
-                </span>
                 <span className="text-xs text-[#858585]">
                   Registered {new Date(team.createdAt).toLocaleDateString()}
                 </span>
