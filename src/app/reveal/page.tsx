@@ -4,7 +4,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReveal } from '@/hooks/useReveal';
+import { useCompetition } from '@/hooks/useCompetition';
 import { DEFAULT_COMPETITION_ID } from '@/lib/services/leaderboardService';
+import { getCompetitionMaxScore, MAX_FINAL_SCORE } from '@/lib/utils/scoring';
 import type { RevealStage } from '@/types/leaderboard';
 import { Trophy, Medal, Award, Lock, Users, Crown, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -144,10 +146,12 @@ function PodiumColumn({
   position,
   team,
   revealed,
+  maxFinalScore,
 }: {
   position: 1 | 2 | 3;
   team: { teamName: string; finalScore: number } | null;
   revealed: boolean;
+  maxFinalScore: number;
 }) {
   const style = PODIUM_STYLES[position];
   const Icon = style.icon;
@@ -237,7 +241,7 @@ function PodiumColumn({
               {team.finalScore}
             </span>
             <span className="ml-1 text-[8px] font-normal text-[#858585] sm:text-[10px]">
-              /150
+              /{maxFinalScore}
             </span>
           </p>
         </motion.div>
@@ -282,6 +286,8 @@ const STAGE_LABELS: Partial<Record<RevealStage, string>> = {
 
 export default function RevealPage() {
   const { revealState, currentStage, loading } = useReveal(DEFAULT_COMPETITION_ID);
+  const { competition } = useCompetition();
+  const maxFinalScore = competition ? getCompetitionMaxScore(competition) : MAX_FINAL_SCORE;
   const [order, setOrder] = useState<number[]>([3, 2, 1]);
 
   const topThree = revealState?.topThree;
@@ -575,16 +581,19 @@ export default function RevealPage() {
                     position={2}
                     team={podiumSecondRevealed ? topThree.second : null}
                     revealed={podiumSecondRevealed}
+                    maxFinalScore={maxFinalScore}
                   />
                   <PodiumColumn
                     position={1}
                     team={podiumFirstRevealed ? topThree.first : null}
                     revealed={podiumFirstRevealed}
+                    maxFinalScore={maxFinalScore}
                   />
                   <PodiumColumn
                     position={3}
                     team={podiumThirdRevealed ? topThree.third : null}
                     revealed={podiumThirdRevealed}
+                    maxFinalScore={maxFinalScore}
                   />
                 </div>
 

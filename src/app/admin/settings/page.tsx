@@ -6,10 +6,11 @@ import { useCompetition } from '@/hooks/useCompetition';
 import { useAuth } from '@/hooks/useAuth';
 import {
   updateCompetitionSettings,
-  updateCriteria,
+  updateRounds,
   updateTieBreakConfig,
   initializeCompetition,
   DEFAULT_CRITERIA,
+  DEFAULT_ROUNDS,
 } from '@/lib/services/competitionService';
 import { createTeam } from '@/lib/services/teamService';
 import { submitScore } from '@/lib/services/scoreService';
@@ -27,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { AlertTriangle, Database, Eraser, RotateCcw, Save, Sparkles, Trash2 } from 'lucide-react';
-import type { Competition, CompetitionStatus, Criterion, TieBreakPolicy } from '@/types/competition';
+import type { Competition, CompetitionStatus, Round, TieBreakPolicy } from '@/types/competition';
 import type { Team } from '@/types/team';
 
 type ResetAction = 'reveal' | 'scores' | 'teams' | 'rounds' | 'all';
@@ -107,7 +108,18 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
   const [tieBreakPolicy, setTieBreakPolicy] = useState<TieBreakPolicy>(
     competition?.tieBreakConfig?.policy || 'shared_position'
   );
-  const [criteria, setCriteria] = useState<Criterion[]>(competition?.criteria || DEFAULT_CRITERIA);
+  const [rounds, setRounds] = useState<Round[]>(() => {
+    const source = competition?.rounds?.length ? competition.rounds : DEFAULT_ROUNDS;
+    return source.map(round => ({
+      ...round,
+      criteria: round.criteria?.length ? round.criteria : competition?.criteria || DEFAULT_CRITERIA,
+    }));
+  });
+  const totalMaxScore = rounds.reduce(
+    (sum, round) =>
+      sum + (round.criteria?.reduce((roundSum, criterion) => roundSum + criterion.maxMarks, 0) ?? round.maxMarks),
+    0
+  );
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [resetAction, setResetAction] = useState<ResetAction | null>(null);
@@ -127,7 +139,12 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
         allowDecimalScores: allowDecimals,
       });
       await updateTieBreakConfig({ policy: tieBreakPolicy });
-      await updateCriteria(criteria);
+
+      const normalizedRounds: Round[] = rounds.map(round => ({
+        ...round,
+        maxMarks: round.criteria?.reduce((sum, criterion) => sum + criterion.maxMarks, 0) ?? 0,
+      }));
+      await updateRounds(normalizedRounds);
 
       if (adminUser) {
         await logActivity(adminUser.uid, adminUser.email, 'competition_settings_change', {
@@ -143,10 +160,23 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
     }
   };
 
-  const handleCriterionChange = (index: number, field: 'name' | 'description', val: string) => {
-    setCriteria(prev => {
+  const handleCriterionChange = (
+    roundIndex: number,
+    criterionIndex: number,
+    field: 'name' | 'description' | 'maxMarks',
+    value: string
+  ) => {
+    setRounds(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: val };
+      const round = { ...updated[roundIndex] };
+      const criteria = [...(round.criteria ?? [])];
+      criteria[criterionIndex] = {
+        ...criteria[criterionIndex],
+        [field]: field === 'maxMarks' ? Math.max(0, Number(value) || 0) : value,
+      };
+      round.criteria = criteria;
+      round.maxMarks = criteria.reduce((sum, criterion) => sum + criterion.maxMarks, 0);
+      updated[roundIndex] = round;
       return updated;
     });
   };
@@ -173,32 +203,26 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
         createdTeams.push(await createTeam(t.name, t.members, adminUser?.uid || 'system'));
       }
 
-      // Add scores for Round 1 and Round 2
-      const scoresR1 = [
-        [9, 9, 8, 9, 9], // 44
-        [8, 8, 9, 8, 9], // 42
-        [9, 8, 8, 8, 8], // 41
-        [7, 8, 8, 8, 7], // 38
-        [7, 7, 7, 8, 7], // 36
-        [6, 7, 6, 7, 7], // 33
-      ];
-
-      const scoresR2 = [
-        [10, 9, 9, 9, 9], // 46 -> 90
-        [9, 9, 9, 9, 9],  // 45 -> 87
-        [8, 9, 8, 8, 9],  // 42 -> 83
-        [8, 8, 8, 8, 8],  // 40 -> 78
-        [8, 7, 8, 7, 7],  // 37 -> 73
-        [7, 7, 7, 7, 6],  // 34 -> 67
-      ];
+      // Add scores for every round, scaled to each round's criteria.
+      const performanceFactors = [0.95, 0.9, 0.85, 0.8, 0.75, 0.7];
 
       for (let i = 0; i < createdTeams.length; i++) {
         const team = createdTeams[i];
-        const r1Criteria = comp.criteria.map((c, ci) => ({ criterionId: c.id, value: scoresR1[i][ci] }));
-        const r2Criteria = comp.criteria.map((c, ci) => ({ criterionId: c.id, value: scoresR2[i][ci] }));
-
-        await submitScore(team.id, 'round1', r1Criteria, adminUser?.uid || 'system', adminUser?.email || 'admin@demo.com');
-        await submitScore(team.id, 'round2', r2Criteria, adminUser?.uid || 'system', adminUser?.email || 'admin@demo.com');
+        for (const round of comp.rounds) {
+          const criteria = round.criteria?.length ? round.criteria : comp.criteria;
+          const roundScores = criteria.map(c => ({
+            criterionId: c.id,
+            value: Math.max(0, Math.round(c.maxMarks * performanceFactors[i])),
+          }));
+          await submitScore(
+            team.id,
+            round.id,
+            roundScores,
+            adminUser?.uid || 'system',
+            adminUser?.email || 'admin@demo.com',
+            criteria.length
+          );
+        }
       }
 
       await recalculateLeaderboard(comp);
@@ -326,7 +350,7 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
               </SelectContent>
             </Select>
             <p className="text-xs text-[#858585] mt-1.5">
-              Determines how identical final scores out of 150 are represented.
+              Determines how identical final scores out of {totalMaxScore} are represented.
             </p>
           </div>
 
@@ -344,45 +368,58 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
         </div>
       </div>
 
-      {/* 5 Marking Criteria Configuration */}
-      <div className="card-dark rounded-xl p-6 space-y-4">
+      {/* Per-round Marking Criteria Configuration */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-[#F5F5F5]">5 Marking Criteria (Max 10 each, Round Max 50)</h2>
-          <span className="text-xs text-[#858585]">Total Round Weight: 50 Marks</span>
+          <h2 className="font-semibold text-[#F5F5F5]">Marking Criteria by Round</h2>
+          <span className="text-xs text-[#858585]">Combined Total: {totalMaxScore} Marks</span>
         </div>
 
-        <div className="space-y-3">
-          {criteria.map((c, i) => (
-            <div key={c.id} className="p-3 rounded-lg border border-[rgba(185,185,185,0.08)] bg-[rgba(0,0,0,0.3)] grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-              <div>
-                <Label className="text-xs text-[#858585] block mb-1">Criterion {i + 1} Name</Label>
-                <Input
-                  value={c.name}
-                  onChange={e => handleCriterionChange(i, 'name', e.target.value)}
-                  className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5] text-sm"
-                />
+        {rounds.map((round, roundIndex) => {
+          const roundTotal = round.criteria?.reduce((sum, criterion) => sum + criterion.maxMarks, 0) ?? round.maxMarks;
+          return (
+            <div key={round.id} className="card-dark rounded-xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-[#F5F5F5]">{round.name}</h3>
+                <span className="text-xs text-[#858585]">Round Total: {roundTotal} Marks</span>
               </div>
-              <div>
-                <Label className="text-xs text-[#858585] block mb-1">Description</Label>
-                <Input
-                  value={c.description || ''}
-                  onChange={e => handleCriterionChange(i, 'description', e.target.value)}
-                  placeholder="Focus area"
-                  className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5] text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-[#858585] block mb-1">Max Marks</Label>
-                <Input
-                  type="number"
-                  disabled
-                  value={c.maxMarks}
-                  className="bg-[#111] border-[rgba(185,185,185,0.1)] text-[#858585] text-sm w-24"
-                />
+
+              <div className="space-y-3">
+                {(round.criteria ?? []).map((c, criterionIndex) => (
+                  <div key={c.id} className="p-3 rounded-lg border border-[rgba(185,185,185,0.08)] bg-[rgba(0,0,0,0.3)] grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div>
+                      <Label className="text-xs text-[#858585] block mb-1">Criterion {criterionIndex + 1} Name</Label>
+                      <Input
+                        value={c.name}
+                        onChange={e => handleCriterionChange(roundIndex, criterionIndex, 'name', e.target.value)}
+                        className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5] text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-[#858585] block mb-1">Description</Label>
+                      <Input
+                        value={c.description || ''}
+                        onChange={e => handleCriterionChange(roundIndex, criterionIndex, 'description', e.target.value)}
+                        placeholder="Focus area"
+                        className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5] text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-[#858585] block mb-1">Max Marks</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={c.maxMarks}
+                        onChange={e => handleCriterionChange(roundIndex, criterionIndex, 'maxMarks', e.target.value)}
+                        className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5] text-sm w-24"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       {/* Save Button */}

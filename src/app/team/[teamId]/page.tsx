@@ -13,6 +13,11 @@ import { getTeamScores } from '@/lib/services/scoreService';
 import { useCompetition } from '@/hooks/useCompetition';
 import { useReveal } from '@/hooks/useReveal';
 import { DEFAULT_COMPETITION_ID } from '@/lib/services/leaderboardService';
+import {
+  getCompetitionMaxScore,
+  getRoundCriteria,
+  getRoundMaxMarks,
+} from '@/lib/utils/scoring';
 import type { Team } from '@/types/team';
 import type { Score } from '@/types/score';
 
@@ -64,6 +69,7 @@ function TeamDetailsContent() {
   const scoreMap = new Map(scores.map(s => [s.roundId, s]));
   const roundTotals = (competition?.rounds || []).map(r => scoreMap.get(r.id)?.roundTotal ?? null);
   const totalScore = roundTotals.reduce<number>((sum, val) => sum + (val ?? 0), 0);
+  const maxFinalScore = competition ? getCompetitionMaxScore(competition) : 0;
 
   return (
     <main className="min-h-screen bg-[#090909] py-12 px-4">
@@ -96,7 +102,7 @@ function TeamDetailsContent() {
               <span className="text-xs text-[#858585] uppercase tracking-wider block">Total Cumulative Score</span>
               <span className="text-3xl md:text-4xl font-black text-[#F5F5F5] rank-number">
                 {totalScore}
-                <span className="text-sm font-normal text-[#858585]">/150</span>
+                <span className="text-sm font-normal text-[#858585]">/{maxFinalScore}</span>
               </span>
             </div>
           </div>
@@ -131,9 +137,10 @@ function TeamDetailsContent() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {(competition?.rounds || []).map((round, ri) => {
+            {(competition?.rounds || []).map((round) => {
               const roundScore = scoreMap.get(round.id);
-              const isEvaluated = roundScore?.evaluationStatus === 'evaluated';
+              const criteria = competition ? getRoundCriteria(competition, round.id) : [];
+              const roundMax = competition ? getRoundMaxMarks(round, competition.criteria) : 0;
 
               return (
                 <div key={round.id} className="card-dark rounded-xl p-5 border border-[rgba(185,185,185,0.08)] space-y-4">
@@ -148,12 +155,12 @@ function TeamDetailsContent() {
                       <span className="text-xl font-bold text-[#F5F5F5] rank-number">
                         {roundScore?.roundTotal ?? '—'}
                       </span>
-                      <span className="text-xs text-[#858585]">/50</span>
+                      <span className="text-xs text-[#858585]">/{roundMax}</span>
                     </div>
                   </div>
 
                   <div className="space-y-2.5">
-                    {(competition?.criteria || []).map(c => {
+                    {criteria.map(c => {
                       const scoreVal = roundScore?.criteriaScores?.find(cs => cs.criterionId === c.id)?.value;
                       return (
                         <div key={c.id} className="flex items-center justify-between text-xs">

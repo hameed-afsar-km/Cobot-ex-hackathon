@@ -10,6 +10,11 @@ interface LeaderboardRowProps {
   row: PublicTeamRow;
   animateIn?: boolean;
   delay?: number;
+  maximumFinalScore?: number;
+}
+
+function getFallbackMaxScore(row: PublicTeamRow): number {
+  return (row.roundScores ?? []).reduce((sum, round) => sum + round.max, 0) || 110;
 }
 
 function MovementIndicator({ movement }: { movement: PublicTeamRow['movement'] }) {
@@ -69,7 +74,7 @@ function RankDisplay({ rank }: { rank: number }) {
   );
 }
 
-function ConcealedRow({ row }: { row: PublicTeamRow }) {
+function ConcealedRow({ row, maximumFinalScore }: { row: PublicTeamRow; maximumFinalScore: number }) {
   return (
     <div className="flex items-center gap-4 px-4 py-4 row-concealed border-b border-[rgba(229,9,20,0.1)]">
       <div className="w-8 flex justify-center">
@@ -97,14 +102,20 @@ function ConcealedRow({ row }: { row: PublicTeamRow }) {
         >
           {row.finalScore ?? '000'}
         </span>
-        <span className="text-xs text-[#858585]">/150</span>
+        <span className="text-xs text-[#858585]">/{maximumFinalScore}</span>
       </div>
     </div>
   );
 }
 
-export function LeaderboardRow({ row, animateIn = true, delay = 0 }: LeaderboardRowProps) {
+export function LeaderboardRow({
+  row,
+  animateIn = true,
+  delay = 0,
+  maximumFinalScore,
+}: LeaderboardRowProps) {
   const [expanded, setExpanded] = useState(false);
+  const maxScore = maximumFinalScore ?? getFallbackMaxScore(row);
 
   if (row.isConcealed) {
     return (
@@ -114,7 +125,7 @@ export function LeaderboardRow({ row, animateIn = true, delay = 0 }: Leaderboard
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay, duration: 0.4, layout: { duration: 0.6, ease: 'easeInOut' } }}
       >
-        <ConcealedRow row={row} />
+        <ConcealedRow row={row} maximumFinalScore={maxScore} />
       </motion.div>
     );
   }
@@ -161,7 +172,7 @@ export function LeaderboardRow({ row, animateIn = true, delay = 0 }: Leaderboard
             <span className="text-xl font-bold text-[#F5F5F5] rank-number">
               {row.finalScore ?? '—'}
             </span>
-            <span className="text-xs text-[#858585] ml-1">/150</span>
+            <span className="text-xs text-[#858585] ml-1">/{maxScore}</span>
           </div>
           {canExpand && (
             expanded
@@ -221,7 +232,7 @@ export function LeaderboardRow({ row, animateIn = true, delay = 0 }: Leaderboard
                               {round.roundName}
                             </span>
                             <span className="text-sm font-bold text-[#F5F5F5]">
-                              {round.total ?? '—'}/50
+                              {round.total ?? '—'}/{round.max}
                             </span>
                           </div>
                           <div className="space-y-1.5">
@@ -246,7 +257,7 @@ export function LeaderboardRow({ row, animateIn = true, delay = 0 }: Leaderboard
                     <span className="text-xs text-[#858585] block">Overall Score</span>
                     <span className="text-2xl font-bold text-[#F5F5F5] rank-number">
                       {row.finalScore ?? '—'}
-                      <span className="text-sm text-[#858585] font-normal">/150</span>
+                      <span className="text-sm text-[#858585] font-normal">/{maxScore}</span>
                     </span>
                   </div>
                 </div>

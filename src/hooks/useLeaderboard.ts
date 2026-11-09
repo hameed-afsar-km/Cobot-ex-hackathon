@@ -22,6 +22,7 @@ function mergeTeams(
       status: 'upcoming',
       currentRound: null,
       totalTeams: teams.length,
+      maximumFinalScore: 0,
       rankings: teams.map((team, index) => ({
         rank: index + 1,
         teamId: team.id,

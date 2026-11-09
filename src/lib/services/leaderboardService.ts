@@ -19,7 +19,12 @@ import type { Score } from '@/types/score';
 import type { Team } from '@/types/team';
 import type { Competition } from '@/types/competition';
 import { rankTeams, calculateMovements, type RankingEntry } from '@/lib/utils/ranking';
-import { calculateFinalScore } from '@/lib/utils/scoring';
+import {
+  calculateFinalScore,
+  getCompetitionMaxScore,
+  getRoundCriteria,
+  getRoundMaxMarks,
+} from '@/lib/utils/scoring';
 
 export const DEFAULT_COMPETITION_ID = 'main';
 
@@ -143,7 +148,7 @@ export async function recalculateLeaderboard(
           return {
             roundId: round.id,
             roundName: round.name,
-            criteria: competition.criteria.map(criterion => {
+            criteria: getRoundCriteria(competition, round.id).map(criterion => {
               const criterionScore = score?.criteriaScores.find(
                 cs => cs.criterionId === criterion.id
               );
@@ -154,6 +159,7 @@ export async function recalculateLeaderboard(
               };
             }),
             total: score?.roundTotal ?? null,
+            max: getRoundMaxMarks(round, competition.criteria),
           };
         });
 
@@ -179,6 +185,7 @@ export async function recalculateLeaderboard(
     status: competition.status,
     currentRound: competition.currentRound,
     totalTeams: teams.length,
+    maximumFinalScore: getCompetitionMaxScore(competition),
     rankings: publicRankings,
     revealStatus,
     updatedAt: Date.now(),

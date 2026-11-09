@@ -15,6 +15,7 @@ export interface Round {
   name: string;
   status: RoundStatus;
   maxMarks: number;
+  criteria?: Criterion[];
   startedAt?: number;
   completedAt?: number;
   lockedAt?: number;
@@ -36,10 +37,11 @@ export interface Competition {
   logoUrl?: string;
   status: CompetitionStatus;
   currentRound: string | null;
-  totalRounds: 3;
-  maximumFinalScore: 150;
+  totalRounds: number;
+  maximumFinalScore: number;
   rounds: Round[];
   criteria: Criterion[];
+  markingSchemeVersion?: number;
   tieBreakConfig: TieBreakConfig;
   allowDecimalScores: boolean;
   revealAnimationDuration?: number;

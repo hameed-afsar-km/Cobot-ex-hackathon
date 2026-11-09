@@ -65,6 +65,7 @@ export async function resetRoundProgress(competition: Competition): Promise<void
     name: round.name,
     status: 'not_started',
     maxMarks: round.maxMarks,
+    criteria: round.criteria,
   }));
 
   const updatedCompetition: Competition = {

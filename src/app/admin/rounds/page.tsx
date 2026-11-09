@@ -12,6 +12,7 @@ import { ChevronRight, Lock, Play, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import type { Round } from '@/types/competition';
+import { getRoundCriteria, getRoundMaxMarks } from '@/lib/utils/scoring';
 
 function RoundStatusBadge({ status }: { status: Round['status'] }) {
   const configs = {
@@ -113,7 +114,7 @@ export default function RoundsPage() {
                     <RoundStatusBadge status={round.status} />
                   </div>
                   <p className="text-xs text-[#858585] mt-0.5">
-                    Max {round.maxMarks} marks · {competition.criteria.length} criteria
+                    Max {getRoundMaxMarks(round, competition.criteria)} marks · {getRoundCriteria(competition, round.id).length} criteria
                   </p>
                   {round.startedAt && (
                     <p className="text-xs text-[#858585]">
@@ -195,17 +196,30 @@ export default function RoundsPage() {
       </div>
 
       {/* Criteria summary */}
-      <div className="card-dark rounded-xl p-6">
-        <h2 className="font-semibold text-[#F5F5F5] mb-4">Marking Criteria</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-          {competition.criteria.map(c => (
-            <div key={c.id} className="p-3 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(185,185,185,0.08)] text-center">
-              <p className="text-sm font-medium text-[#F5F5F5] mb-1">{c.name}</p>
-              <p className="text-xs text-[#858585]">{c.maxMarks} marks</p>
+      <div className="card-dark rounded-xl p-6 space-y-5">
+        <h2 className="font-semibold text-[#F5F5F5]">Marking Criteria by Round</h2>
+        {competition.rounds.map(round => {
+          const criteria = getRoundCriteria(competition, round.id);
+          return (
+            <div key={round.id} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-[#F5F5F5]">{round.name}</h3>
+                <span className="text-xs text-[#858585]">
+                  {getRoundMaxMarks(round, competition.criteria)} marks
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {criteria.map(c => (
+                  <div key={c.id} className="p-3 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(185,185,185,0.08)] text-center">
+                    <p className="text-sm font-medium text-[#F5F5F5] mb-1">{c.name}</p>
+                    <p className="text-xs text-[#858585]">{c.maxMarks} marks</p>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-        <div className="mt-4 flex justify-end">
+          );
+        })}
+        <div className="flex justify-end">
           <Link href="/admin/settings">
             <Button variant="ghost" size="sm" className="text-[#E50914] text-xs">
               Configure Criteria →

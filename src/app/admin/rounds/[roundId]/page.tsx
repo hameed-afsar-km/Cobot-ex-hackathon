@@ -17,6 +17,7 @@ import Link from 'next/link';
 import type { Team } from '@/types/team';
 import type { Score, CriterionScore } from '@/types/score';
 import type { Criterion } from '@/types/competition';
+import { getRoundCriteria, getRoundMaxMarks } from '@/lib/utils/scoring';
 import { toast } from 'sonner';
 
 function ScoreInput({
@@ -51,12 +52,14 @@ function TeamScoreRow({
   team,
   score,
   criteria,
+  maxMarks,
   onSave,
   locked,
 }: {
   team: Team;
   score: Score | undefined;
   criteria: Criterion[];
+  maxMarks: number;
   onSave: (teamId: string, scores: CriterionScore[]) => Promise<void>;
   locked: boolean;
 }) {
@@ -127,7 +130,7 @@ function TeamScoreRow({
       ))}
       <td className="px-4 py-3 text-center">
         <span className={`text-sm font-bold rank-number ${allFilled ? 'text-[#F5F5F5]' : 'text-[#858585]'}`}>
-          {allFilled ? total : '—'}/50
+          {allFilled ? total : '—'}/{maxMarks}
         </span>
       </td>
       <td className="px-4 py-3 text-right">
@@ -158,6 +161,8 @@ function RoundScoringContent() {
 
   const round = competition?.rounds?.find(r => r.id === roundId);
   const isLocked = round?.status === 'locked';
+  const roundCriteria = competition ? getRoundCriteria(competition, roundId) : [];
+  const roundMaxMarks = round ? getRoundMaxMarks(round, competition?.criteria) : 0;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -179,7 +184,7 @@ function RoundScoringContent() {
     const score = await submitScore(
       teamId, roundId, criteriaScores,
       adminUser.uid, adminUser.email,
-      competition.criteria.length
+      roundCriteria.length
     );
     setScores(prev => {
       const idx = prev.findIndex(s => s.teamId === teamId && s.roundId === roundId);
@@ -230,7 +235,7 @@ function RoundScoringContent() {
               )}
             </div>
             <p className="text-xs text-[#858585] mt-0.5">
-              {evaluatedCount}/{teams.length} teams evaluated · Max 50 marks per team
+              {evaluatedCount}/{teams.length} teams evaluated · Max {roundMaxMarks} marks per team
             </p>
           </div>
         </div>
@@ -242,7 +247,7 @@ function RoundScoringContent() {
           <thead>
             <tr className="border-b border-[rgba(185,185,185,0.08)] bg-[rgba(255,255,255,0.02)]">
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#858585] uppercase tracking-wider">Team</th>
-              {competition.criteria.map(c => (
+              {roundCriteria.map(c => (
                 <th key={c.id} className="px-2 py-3 text-center text-xs font-semibold text-[#858585] uppercase tracking-wider min-w-[90px]">
                   <div className="flex flex-col items-center gap-0.5">
                     <span className="truncate max-w-[80px]">{c.name}</span>
@@ -260,7 +265,8 @@ function RoundScoringContent() {
                 key={team.id}
                 team={team}
                 score={scores.find(s => s.teamId === team.id)}
-                criteria={competition.criteria}
+                criteria={roundCriteria}
+                maxMarks={roundMaxMarks}
                 onSave={handleSave}
                 locked={isLocked}
               />

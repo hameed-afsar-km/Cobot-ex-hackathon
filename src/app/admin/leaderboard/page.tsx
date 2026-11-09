@@ -8,7 +8,11 @@ import { getAllTeams } from '@/lib/services/teamService';
 import { getAllScores } from '@/lib/services/scoreService';
 import { recalculateLeaderboard } from '@/lib/services/leaderboardService';
 import { rankTeams } from '@/lib/utils/ranking';
-import { calculateFinalScore } from '@/lib/utils/scoring';
+import {
+  calculateFinalScore,
+  getCompetitionMaxScore,
+  getRoundMaxMarks,
+} from '@/lib/utils/scoring';
 import type { Team } from '@/types/team';
 import type { Score } from '@/types/score';
 import { Button } from '@/components/ui/button';
@@ -63,6 +67,7 @@ export default function AdminLeaderboardPage() {
     };
   });
   const ranked = rankTeams(entries, competition.tieBreakConfig?.policy || 'shared_position');
+  const maxFinalScore = getCompetitionMaxScore(competition);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -70,7 +75,7 @@ export default function AdminLeaderboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#F5F5F5]">Leaderboard (Admin Preview)</h1>
           <p className="text-[#858585] text-sm mt-1">
-            Authoritative rankings computed across all 3 rounds (out of 150)
+            Authoritative rankings computed across all {competition.rounds.length} rounds (out of {maxFinalScore})
           </p>
         </div>
         <div className="flex gap-2">
@@ -123,12 +128,12 @@ export default function AdminLeaderboardPage() {
                     <span className={`text-sm font-medium ${entry.roundScores[r.id] !== null ? 'text-[#F5F5F5]' : 'text-[#555]'}`}>
                       {entry.roundScores[r.id] ?? '—'}
                     </span>
-                    <span className="text-xs text-[#444]">/50</span>
+                    <span className="text-xs text-[#444]">/{getRoundMaxMarks(r, competition.criteria)}</span>
                   </td>
                 ))}
                 <td className="px-4 py-3 text-right">
                   <span className="text-lg font-bold text-[#F5F5F5] rank-number">{entry.finalScore}</span>
-                  <span className="text-xs text-[#858585]">/150</span>
+                  <span className="text-xs text-[#858585]">/{maxFinalScore}</span>
                 </td>
               </tr>
             ))}

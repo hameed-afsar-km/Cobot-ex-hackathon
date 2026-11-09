@@ -20,6 +20,7 @@ export interface PublicTeamRow {
     roundName: string;
     criteria: Array<{ name: string; value: number | null; max: number }>;
     total: number | null;
+    max: number;
   }[];
 }
 
@@ -29,6 +30,7 @@ export interface PublicLeaderboard {
   status: string;
   currentRound: string | null;
   totalTeams: number;
+  maximumFinalScore?: number;
   rankings: PublicTeamRow[];
   revealStatus: RevealStatus;
   updatedAt: number;

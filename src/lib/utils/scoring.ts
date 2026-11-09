@@ -1,11 +1,36 @@
 // src/lib/utils/scoring.ts
 import type { CriterionScore } from '@/types/score';
-import type { Criterion } from '@/types/competition';
+import type { Competition, Criterion, Round } from '@/types/competition';
 
-export const MAX_CRITERION_MARKS = 10;
+export const MAX_CRITERION_MARKS = 20;
 export const MAX_ROUND_MARKS = 50;
 export const TOTAL_ROUNDS = 3;
-export const MAX_FINAL_SCORE = 150;
+export const MAX_FINAL_SCORE = 110;
+
+/**
+ * Criteria belong to a round. Older competitions only stored a single global
+ * criteria list, so fall back to `competition.criteria` when a round has none.
+ */
+export function getRoundCriteria(competition: Competition, roundId: string): Criterion[] {
+  const round = competition.rounds.find(r => r.id === roundId);
+  if (round?.criteria && round.criteria.length > 0) return round.criteria;
+  return competition.criteria ?? [];
+}
+
+export function getRoundMaxMarks(round: Round, fallbackCriteria?: Criterion[]): number {
+  if (typeof round.maxMarks === 'number' && round.maxMarks > 0) return round.maxMarks;
+  const criteria = round.criteria && round.criteria.length > 0
+    ? round.criteria
+    : fallbackCriteria ?? [];
+  return criteria.reduce((sum, criterion) => sum + criterion.maxMarks, 0);
+}
+
+export function getCompetitionMaxScore(competition: Competition): number {
+  return competition.rounds.reduce(
+    (sum, round) => sum + getRoundMaxMarks(round, competition.criteria),
+    0
+  );
+}
 
 export function calculateRoundTotal(
   criteriaScores: CriterionScore[],

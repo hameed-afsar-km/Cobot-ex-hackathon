@@ -59,6 +59,7 @@ export function Leaderboard({ leaderboard, loading }: LeaderboardProps) {
             row={row}
             animateIn
             delay={Math.min(i, 3) * 0.08}
+            maximumFinalScore={leaderboard.maximumFinalScore}
           />
           {i === 2 && rankings.length > 3 && (
             <div className="h-px bg-gradient-to-r from-transparent via-[rgba(229,9,20,0.3)] to-transparent" />

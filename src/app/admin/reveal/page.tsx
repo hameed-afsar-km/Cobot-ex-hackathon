@@ -14,7 +14,7 @@ import { getAllTeams } from '@/lib/services/teamService';
 import { getAllScores } from '@/lib/services/scoreService';
 import { logActivity } from '@/lib/services/adminService';
 import { rankTeams } from '@/lib/utils/ranking';
-import { calculateFinalScore } from '@/lib/utils/scoring';
+import { calculateFinalScore, getCompetitionMaxScore, MAX_FINAL_SCORE } from '@/lib/utils/scoring';
 import type { RevealTopThree } from '@/types/leaderboard';
 import type { Team } from '@/types/team';
 import type { Score } from '@/types/score';
@@ -193,6 +193,7 @@ export default function RevealAdminPage() {
   }
 
   const revealStatus = revealState?.status ?? 'concealed';
+  const maxFinalScore = competition ? getCompetitionMaxScore(competition) : MAX_FINAL_SCORE;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -275,7 +276,7 @@ export default function RevealAdminPage() {
                   <p className="font-medium text-[#F5F5F5]">{team.teamName}</p>
                 </div>
                 <span className="text-xl font-bold text-[#F5F5F5] rank-number">
-                  {team.finalScore}<span className="text-sm text-[#858585] font-normal">/150</span>
+                  {team.finalScore}<span className="text-sm text-[#858585] font-normal">/{maxFinalScore}</span>
                 </span>
               </div>
             ))}
