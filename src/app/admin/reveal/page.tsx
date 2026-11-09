@@ -257,7 +257,7 @@ export default function RevealAdminPage() {
         open={confirmReveal}
         onOpenChange={setConfirmReveal}
         title="Start Winner Reveal"
-        description="This will immediately broadcast the reveal animation across all connected public screens. All spectators will witness the sequential reveal and top-three celebration. Proceed?"
+        description="This broadcasts the full reveal sequence to every connected public screen. Once started it runs automatically: 3rd, 2nd and 1st names unblur, the top three shuffle, everything re-blurs, then the podium fills from 3rd to 1st. No further clicks are needed. Proceed?"
         confirmLabel="Start Reveal"
         onConfirm={handleInitiateReveal}
       />

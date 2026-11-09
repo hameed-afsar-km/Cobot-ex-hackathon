@@ -5,17 +5,13 @@ import {
   getDocs,
   setDoc,
   onSnapshot,
-  orderBy,
-  query,
   db,
 } from '@/lib/firebase/firestore';
 import {
   COLLECTIONS,
-  publicLeaderboardsCol,
   leaderboardSnapshotsCol,
   teamsCol,
   scoresCol,
-  revealCol,
   stripUndefined,
 } from '@/lib/firebase/firestore';
 import type { PublicLeaderboard, RevealState, LeaderboardSnapshot } from '@/types/leaderboard';
@@ -77,6 +73,9 @@ export async function recalculateLeaderboard(
   const teams: Team[] = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Team);
   const scores: Score[] = scoresSnap.docs.map(d => d.data() as Score);
 
+  const teamMap = new Map<string, Team>();
+  for (const team of teams) teamMap.set(team.id, team);
+
   const scoreMap = new Map<string, Score>();
   for (const s of scores) {
     scoreMap.set(`${s.teamId}_${s.roundId}`, s);
@@ -131,6 +130,32 @@ export async function recalculateLeaderboard(
     const rank = allZero ? index + 1 : entry.rank;
     const isTopThree = rank <= 3;
     const isConcealed = isTopThree && !isRevealed && entry.finalScore > 0;
+    const team = teamMap.get(entry.teamId);
+
+    const members = isConcealed || !team
+      ? undefined
+      : team.members.map(member => ({ name: member.name }));
+
+    const roundScores = isConcealed
+      ? undefined
+      : competition.rounds.map(round => {
+          const score = scoreMap.get(`${entry.teamId}_${round.id}`);
+          return {
+            roundId: round.id,
+            roundName: round.name,
+            criteria: competition.criteria.map(criterion => {
+              const criterionScore = score?.criteriaScores.find(
+                cs => cs.criterionId === criterion.id
+              );
+              return {
+                name: criterion.name,
+                value: criterionScore?.value ?? null,
+                max: criterion.maxMarks,
+              };
+            }),
+            total: score?.roundTotal ?? null,
+          };
+        });
 
     return {
       rank,
@@ -140,6 +165,8 @@ export async function recalculateLeaderboard(
       movement: movements.get(entry.teamId) ?? { direction: 'neutral' as const, positions: 0 },
       evaluatedRounds: entry.evaluatedRounds,
       isConcealed,
+      members,
+      roundScores,
     };
   });
 

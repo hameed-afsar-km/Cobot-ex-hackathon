@@ -21,10 +21,18 @@ export function useReveal(competitionId: string) {
     return unsubscribe;
   }, [competitionId]);
 
-  // For timestamp-based reconstruction, update stage on mount/refresh
+  // Advance the stage locally while the reveal is playing so viewers do not
+  // depend on Firestore updates (the admin only triggers the reveal once).
   useEffect(() => {
     if (!revealState) return;
-    setCurrentStage(computeCurrentStage(revealState));
+
+    const update = () => setCurrentStage(computeCurrentStage(revealState));
+    update();
+
+    if (revealState.status !== 'revealing') return;
+
+    const interval = window.setInterval(update, 200);
+    return () => window.clearInterval(interval);
   }, [revealState]);
 
   return { revealState, currentStage, loading };

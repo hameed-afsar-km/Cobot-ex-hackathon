@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { AuroraBackground } from '@/components/ui/aurora-background';
 
 export default function HomePage() {
   const { leaderboard, loading } = useLeaderboard(DEFAULT_COMPETITION_ID);
@@ -18,11 +19,8 @@ export default function HomePage() {
   const isRevealing = revealState?.status === 'revealing' || revealState?.status === 'revealed';
 
   return (
-    <main className="min-h-screen bg-[#090909]">
-      {/* Background atmospheric glow */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[rgba(229,9,20,0.04)] blur-[100px] rounded-full" />
-      </div>
+    <main className="isolate min-h-screen bg-[#090909]">
+      <AuroraBackground />
 
       <PublicHeader leaderboard={leaderboard} />
 

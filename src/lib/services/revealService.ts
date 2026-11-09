@@ -15,16 +15,17 @@ import { createLeaderboardSnapshot } from './leaderboardService';
 export const DEFAULT_ANIMATION_CONFIG: RevealAnimationConfig = {
   stageDuration: {
     idle: 0,
-    third_name: 4000,
-    second_name: 4000,
+    third_name: 3500,
+    second_name: 3500,
     first_name: 4000,
-    shuffle: 8000,
-    final_third: 5000,
-    final_second: 5000,
-    final_first: 6000,
+    shuffle: 6000,
+    reblur: 2200,
+    final_third: 4500,
+    final_second: 4500,
+    final_first: 5500,
     celebration: 15000,
   },
-  shuffleDuration: 8000,
+  shuffleDuration: 6000,
 };
 
 export async function getRevealState(competitionId: string): Promise<RevealState | null> {
@@ -53,13 +54,14 @@ export function computeCurrentStage(
   if (state.status !== 'revealing' || !state.startedAt) return state.stage;
 
   const elapsed = Date.now() - state.startedAt;
-  const config = state.animationConfig;
+  const stageDuration = state.animationConfig?.stageDuration ?? {};
 
   const stages: RevealStage[] = [
     'third_name',
     'second_name',
     'first_name',
     'shuffle',
+    'reblur',
     'final_third',
     'final_second',
     'final_first',
@@ -68,7 +70,8 @@ export function computeCurrentStage(
 
   let cumulative = 0;
   for (const stage of stages) {
-    cumulative += config.stageDuration[stage] ?? 4000;
+    cumulative +=
+      stageDuration[stage] ?? DEFAULT_ANIMATION_CONFIG.stageDuration[stage] ?? 4000;
     if (elapsed < cumulative) return stage;
   }
 

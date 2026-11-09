@@ -43,6 +43,7 @@ export type RevealStage =
   | 'second_name'
   | 'first_name'
   | 'shuffle'
+  | 'reblur'
   | 'final_third'
   | 'final_second'
   | 'final_first'
