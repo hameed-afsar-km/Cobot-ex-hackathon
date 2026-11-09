@@ -8,6 +8,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  onSnapshot,
   db,
 } from '@/lib/firebase/firestore';
 import { COLLECTIONS, teamsCol } from '@/lib/firebase/firestore';
@@ -16,6 +17,12 @@ import type { Team, TeamMember } from '@/types/team';
 export async function getAllTeams(): Promise<Team[]> {
   const snap = await getDocs(query(teamsCol(), orderBy('teamName', 'asc')));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }) as Team);
+}
+
+export function subscribeToTeams(callback: (teams: Team[]) => void): () => void {
+  return onSnapshot(query(teamsCol(), orderBy('teamName', 'asc')), snap => {
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Team));
+  });
 }
 
 export async function getTeam(teamId: string): Promise<Team | null> {

@@ -105,11 +105,16 @@ export async function updateTieBreakConfig(config: TieBreakConfig): Promise<void
 }
 
 export function subscribeToCompetition(
-  callback: (comp: Competition | null) => void
+  callback: (comp: Competition | null) => void,
+  onError?: (error: Error) => void
 ): () => void {
   const ref = doc(db, COLLECTIONS.COMPETITIONS, DEFAULT_COMPETITION_ID);
-  return onSnapshot(ref, snap => {
-    callback(snap.exists() ? (snap.data() as Competition) : null);
-  });
+  return onSnapshot(
+    ref,
+    snap => {
+      callback(snap.exists() ? (snap.data() as Competition) : null);
+    },
+    error => onError?.(error)
+  );
 }
 

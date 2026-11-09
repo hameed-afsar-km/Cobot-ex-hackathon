@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, ArrowUp, ArrowDown, Minus, Sparkles, Users, Trophy } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowUp, ArrowDown, Minus, Sparkles, Users, Trophy, Lock } from 'lucide-react';
 import type { PublicTeamRow } from '@/types/leaderboard';
 
 interface LeaderboardRowProps {
@@ -13,26 +13,43 @@ interface LeaderboardRowProps {
 }
 
 function MovementIndicator({ movement }: { movement: PublicTeamRow['movement'] }) {
+  let content: React.ReactNode;
+  let color = 'text-[#858585]';
+
   if (movement.direction === 'up') {
-    return (
-      <span className="flex items-center gap-0.5 text-[#16A34A]">
+    color = 'text-[#16A34A]';
+    content = (
+      <>
         <ArrowUp className="w-3 h-3" />
         {movement.positions > 0 && <span className="text-xs">{movement.positions}</span>}
-      </span>
+      </>
     );
-  }
-  if (movement.direction === 'down') {
-    return (
-      <span className="flex items-center gap-0.5 text-[#E50914]">
+  } else if (movement.direction === 'down') {
+    color = 'text-[#E50914]';
+    content = (
+      <>
         <ArrowDown className="w-3 h-3" />
         {movement.positions > 0 && <span className="text-xs">{movement.positions}</span>}
-      </span>
+      </>
     );
+  } else if (movement.direction === 'new') {
+    color = 'text-[#D6A84B]';
+    content = <Sparkles className="w-3 h-3" />;
+  } else {
+    content = <Minus className="w-3 h-3" />;
   }
-  if (movement.direction === 'new') {
-    return <Sparkles className="w-3 h-3 text-[#D6A84B]" />;
-  }
-  return <Minus className="w-3 h-3 text-[#858585]" />;
+
+  return (
+    <motion.span
+      key={`${movement.direction}-${movement.positions}`}
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className={`flex items-center gap-0.5 ${color}`}
+    >
+      {content}
+    </motion.span>
+  );
 }
 
 function RankDisplay({ rank }: { rank: number }) {
@@ -52,28 +69,35 @@ function RankDisplay({ rank }: { rank: number }) {
   );
 }
 
-function ConcealedRow({ rank, movement }: { rank: number; movement: PublicTeamRow['movement'] }) {
+function ConcealedRow({ row }: { row: PublicTeamRow }) {
   return (
-    <div className="flex items-center gap-4 px-4 py-4 row-concealed border-b border-[rgba(229,9,20,0.1)] opacity-70">
+    <div className="flex items-center gap-4 px-4 py-4 row-concealed border-b border-[rgba(229,9,20,0.1)]">
       <div className="w-8 flex justify-center">
-        <RankDisplay rank={rank} />
+        <RankDisplay rank={row.rank} />
       </div>
       <div className="w-5 flex justify-center">
-        <MovementIndicator movement={movement} />
+        <MovementIndicator movement={row.movement} />
       </div>
-      <div className="flex-1 flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-[rgba(229,9,20,0.2)]" />
-          <div className="flex flex-col gap-1">
-            <div className="h-3 w-24 bg-[rgba(229,9,20,0.15)] rounded animate-pulse" />
-          </div>
-        </div>
-        <span className="text-xs text-[#E50914] ml-2 opacity-70">
-          🔒 Concealed until reveal
+      <div className="flex-1 min-w-0">
+        <span
+          aria-hidden
+          className="font-semibold text-[#F5F5F5] truncate block blur-[6px] select-none"
+        >
+          {row.teamName ?? '████████████'}
+        </span>
+        <span className="text-xs text-[#E50914] mt-1 flex items-center gap-1">
+          <Lock className="w-3 h-3" />
+          Concealed until reveal
         </span>
       </div>
-      <div className="w-20 flex justify-end">
-        <div className="h-5 w-12 bg-[rgba(229,9,20,0.1)] rounded animate-pulse" />
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="text-xl font-bold text-[#F5F5F5] rank-number blur-[6px] select-none"
+        >
+          {row.finalScore ?? '000'}
+        </span>
+        <span className="text-xs text-[#858585]">/150</span>
       </div>
     </div>
   );
@@ -85,17 +109,18 @@ export function LeaderboardRow({ row, animateIn = true, delay = 0 }: Leaderboard
   if (row.isConcealed) {
     return (
       <motion.div
+        layout
         initial={animateIn ? { opacity: 0, x: -20 } : false}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay, duration: 0.4 }}
+        transition={{ delay, duration: 0.4, layout: { duration: 0.6, ease: 'easeInOut' } }}
       >
-        <ConcealedRow rank={row.rank} movement={row.movement} />
+        <ConcealedRow row={row} />
       </motion.div>
     );
   }
 
   const isTopThree = row.rank <= 3;
-  const canExpand = !isTopThree || (isTopThree && !row.isConcealed);
+  const canExpand = !isTopThree;
 
   const rowBg = isTopThree
     ? 'bg-[rgba(229,9,20,0.05)] border-[rgba(229,9,20,0.15)]'
@@ -105,7 +130,7 @@ export function LeaderboardRow({ row, animateIn = true, delay = 0 }: Leaderboard
     <motion.div
       initial={animateIn ? { opacity: 0, x: -20 } : false}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ delay, duration: 0.4 }}
+      transition={{ delay, duration: 0.4, layout: { duration: 0.6, ease: 'easeInOut' } }}
       layout
     >
       {/* Main row */}

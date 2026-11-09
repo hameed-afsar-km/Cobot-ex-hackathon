@@ -8,15 +8,22 @@ import type { Competition } from '@/types/competition';
 export function useCompetition() {
   const [competition, setCompetition] = useState<Competition | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const unsubscribe = subscribeToCompetition((comp) => {
-      setCompetition(comp);
-      setLoading(false);
-    });
+    const unsubscribe = subscribeToCompetition(
+      (comp) => {
+        setCompetition(comp);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      }
+    );
     return unsubscribe;
   }, []);
 
-  return { competition, loading };
+  return { competition, loading, error };
 }
 

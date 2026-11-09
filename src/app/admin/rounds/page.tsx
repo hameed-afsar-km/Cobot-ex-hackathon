@@ -3,7 +3,7 @@
 
 import { useCompetition } from '@/hooks/useCompetition';
 import { useAuth } from '@/hooks/useAuth';
-import { updateRoundStatus } from '@/lib/services/competitionService';
+import { initializeCompetition, updateRoundStatus } from '@/lib/services/competitionService';
 import { logActivity } from '@/lib/services/adminService';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { Button } from '@/components/ui/button';
@@ -25,9 +25,22 @@ function RoundStatusBadge({ status }: { status: Round['status'] }) {
 }
 
 export default function RoundsPage() {
-  const { competition, loading } = useCompetition();
+  const { competition, loading, error } = useCompetition();
   const { adminUser } = useAuth();
   const [updating, setUpdating] = useState<string | null>(null);
+  const [initializing, setInitializing] = useState(false);
+
+  const handleInitialize = async () => {
+    setInitializing(true);
+    try {
+      await initializeCompetition('Cobot-ex Championship 2026', adminUser?.uid || 'admin');
+      toast.success('Competition initialized');
+    } catch (err: any) {
+      toast.error('Failed to initialize competition', { description: err?.message });
+    } finally {
+      setInitializing(false);
+    }
+  };
 
   const handleStatusChange = async (roundId: string, status: Round['status']) => {
     setUpdating(roundId);
@@ -48,8 +61,35 @@ export default function RoundsPage() {
     }
   };
 
-  if (loading || !competition) {
+  if (loading) {
     return <LoadingState message="Loading rounds..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <h1 className="text-xl font-bold text-[#F5F5F5] mb-2">Could not load rounds</h1>
+        <p className="text-[#858585] text-sm">{error.message}</p>
+      </div>
+    );
+  }
+
+  if (!competition) {
+    return (
+      <div className="max-w-xl mx-auto text-center py-12 space-y-4">
+        <h1 className="text-xl font-bold text-[#F5F5F5]">Competition not initialized</h1>
+        <p className="text-[#858585] text-sm">
+          Create the default competition, rounds, and marking criteria to begin scoring.
+        </p>
+        <Button
+          onClick={handleInitialize}
+          disabled={initializing}
+          className="bg-[#E50914] hover:bg-[#FF3028] text-white"
+        >
+          {initializing ? 'Initializing...' : 'Initialize Competition'}
+        </Button>
+      </div>
+    );
   }
 
   return (

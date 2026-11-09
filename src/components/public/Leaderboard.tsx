@@ -1,6 +1,7 @@
 // src/components/public/Leaderboard.tsx
 'use client';
 
+import { Fragment } from 'react';
 import { motion } from 'framer-motion';
 import { LeaderboardRow } from './LeaderboardRow';
 import { LeaderboardSkeleton } from '@/components/shared/LoadingState';
@@ -34,8 +35,7 @@ export function Leaderboard({ leaderboard, loading }: LeaderboardProps) {
     );
   }
 
-  const topThree = leaderboard.rankings.filter(r => r.rank <= 3);
-  const rest = leaderboard.rankings.filter(r => r.rank > 3);
+  const rankings = leaderboard.rankings;
 
   return (
     <div className="rounded-xl overflow-hidden border border-[rgba(185,185,185,0.08)] bg-[#0d0d0d]">
@@ -53,29 +53,17 @@ export function Leaderboard({ leaderboard, loading }: LeaderboardProps) {
         </div>
       </div>
 
-      {/* Top 3 */}
-      {topThree.map((row, i) => (
-        <LeaderboardRow
-          key={row.teamId}
-          row={row}
-          animateIn
-          delay={i * 0.08}
-        />
-      ))}
-
-      {/* Divider if top 3 and rest */}
-      {topThree.length > 0 && rest.length > 0 && (
-        <div className="h-px bg-gradient-to-r from-transparent via-[rgba(229,9,20,0.3)] to-transparent" />
-      )}
-
-      {/* Rest */}
-      {rest.map((row, i) => (
-        <LeaderboardRow
-          key={row.teamId}
-          row={row}
-          animateIn
-          delay={topThree.length * 0.08 + i * 0.05}
-        />
+      {rankings.map((row, i) => (
+        <Fragment key={row.teamId}>
+          <LeaderboardRow
+            row={row}
+            animateIn
+            delay={Math.min(i, 3) * 0.08}
+          />
+          {i === 2 && rankings.length > 3 && (
+            <div className="h-px bg-gradient-to-r from-transparent via-[rgba(229,9,20,0.3)] to-transparent" />
+          )}
+        </Fragment>
       ))}
 
       {/* Provisional notice */}

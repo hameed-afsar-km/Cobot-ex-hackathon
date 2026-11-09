@@ -47,6 +47,23 @@ export const publicLeaderboardsCol = () => collection(db, COLLECTIONS.PUBLIC_LEA
 export const revealCol = () => collection(db, COLLECTIONS.REVEAL);
 export const activityLogsCol = () => collection(db, COLLECTIONS.ACTIVITY_LOGS);
 
+// Recursively remove undefined values so Firestore writes don't fail
+export function stripUndefined<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value
+      .filter(v => v !== undefined)
+      .map(v => stripUndefined(v)) as T;
+  }
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, stripUndefined(v)])
+    ) as T;
+  }
+  return value;
+}
+
 // Helper to convert Firestore Timestamp to ms
 export function toMs(ts: Timestamp | number | null | undefined): number {
   if (!ts) return Date.now();

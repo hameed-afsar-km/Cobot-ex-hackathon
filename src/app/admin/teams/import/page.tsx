@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { read as xlsxRead, utils as xlsxUtils } from 'xlsx';
 import { validateAndMapRows, summarizeImportResults } from '@/lib/utils/importValidation';
 import { getExistingTeamNames, batchImportTeams } from '@/lib/services/teamService';
+import { getCompetition } from '@/lib/services/competitionService';
+import { recalculateLeaderboard } from '@/lib/services/leaderboardService';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { logActivity } from '@/lib/services/adminService';
 import { useAuth } from '@/hooks/useAuth';
@@ -114,6 +116,12 @@ export default function ImportTeamsPage() {
         rowsToImport.map(r => ({ teamName: r.teamName, members: r.members })),
         adminUser!.uid
       );
+      try {
+        const competition = await getCompetition();
+        if (competition) await recalculateLeaderboard(competition);
+      } catch (recalcError) {
+        console.error('Leaderboard recalculation failed after import:', recalcError);
+      }
       await logActivity(adminUser!.uid, adminUser!.email, 'team_import', {
         affectedRecordType: 'team',
         metadata: { imported: success.length, failed: failed.length, file: fileName },

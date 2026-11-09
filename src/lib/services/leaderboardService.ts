@@ -16,6 +16,7 @@ import {
   teamsCol,
   scoresCol,
   revealCol,
+  stripUndefined,
 } from '@/lib/firebase/firestore';
 import type { PublicLeaderboard, RevealState, LeaderboardSnapshot } from '@/types/leaderboard';
 import type { Score } from '@/types/score';
@@ -124,21 +125,21 @@ export async function recalculateLeaderboard(
   const revealStatus = revealState?.status ?? 'concealed';
   const isRevealed = revealStatus === 'revealed';
 
+  const allZero = ranked.every(entry => entry.finalScore === 0);
+
   const publicRankings = ranked.map((entry, index) => {
-    const isTopThree = entry.rank <= 3;
-    const isConcealed = isTopThree && !isRevealed;
+    const rank = allZero ? index + 1 : entry.rank;
+    const isTopThree = rank <= 3;
+    const isConcealed = isTopThree && !isRevealed && entry.finalScore > 0;
 
     return {
-      rank: entry.rank,
+      rank,
       teamId: entry.teamId,
       teamName: isConcealed ? null : entry.teamName,
       finalScore: isConcealed ? null : entry.finalScore,
       movement: movements.get(entry.teamId) ?? { direction: 'neutral' as const, positions: 0 },
       evaluatedRounds: entry.evaluatedRounds,
       isConcealed,
-      // Members and round scores: only provided for non-top-3 or after reveal
-      members: isConcealed ? undefined : undefined, // populated on demand
-      roundScores: undefined,
     };
   });
 
@@ -159,7 +160,7 @@ export async function recalculateLeaderboard(
 
   await setDoc(
     doc(db, COLLECTIONS.PUBLIC_LEADERBOARDS, competition.id),
-    publicLeaderboard
+    stripUndefined(publicLeaderboard)
   );
 }
 
@@ -214,7 +215,7 @@ export async function createLeaderboardSnapshot(
     createdBy,
   };
 
-  await setDoc(snapshotRef, snapshot);
+  await setDoc(snapshotRef, stripUndefined(snapshot));
   return snapshot;
 }
 
