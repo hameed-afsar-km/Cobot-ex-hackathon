@@ -3,14 +3,14 @@ import {
   doc,
   getDoc,
   setDoc,
-  updateDoc,
   onSnapshot,
   db,
 } from '@/lib/firebase/firestore';
 import { COLLECTIONS } from '@/lib/firebase/firestore';
 import type { RevealState, RevealStage, RevealTopThree, RevealAnimationConfig } from '@/types/leaderboard';
 import type { Competition } from '@/types/competition';
-import { createLeaderboardSnapshot } from './leaderboardService';
+import { createLeaderboardSnapshot, recalculateLeaderboard } from './leaderboardService';
+import { getCompetition } from './competitionService';
 
 export const DEFAULT_ANIMATION_CONFIG: RevealAnimationConfig = {
   stageDuration: {
@@ -99,28 +99,51 @@ export async function initiateReveal(
   };
 
   await setDoc(doc(db, COLLECTIONS.REVEAL, competition.id), revealState);
+
+  // Keep the public projection concealed while the reveal is playing.
+  await recalculateLeaderboard(competition);
+
   return revealState;
 }
 
 export async function completeReveal(competitionId: string): Promise<void> {
-  await updateDoc(doc(db, COLLECTIONS.REVEAL, competitionId), {
-    status: 'revealed',
-    stage: 'celebration',
-    updatedAt: Date.now(),
-  });
+  await setDoc(
+    doc(db, COLLECTIONS.REVEAL, competitionId),
+    {
+      competitionId,
+      status: 'revealed',
+      stage: 'celebration',
+      updatedAt: Date.now(),
+    },
+    { merge: true }
+  );
+
+  // Unblur the top three in the public projection only after the reveal ends.
+  const competition = await getCompetition(competitionId);
+  if (competition) {
+    await recalculateLeaderboard(competition);
+  }
 }
 
 export async function resetReveal(competitionId: string): Promise<void> {
   const revealState: Partial<RevealState> = {
+    competitionId,
     status: 'concealed',
     stage: 'idle',
     startedAt: null,
     startedBy: null,
     snapshotId: null,
     topThree: null,
+    animationConfig: DEFAULT_ANIMATION_CONFIG,
     updatedAt: Date.now(),
   };
-  await updateDoc(doc(db, COLLECTIONS.REVEAL, competitionId), revealState);
+  await setDoc(doc(db, COLLECTIONS.REVEAL, competitionId), revealState, { merge: true });
+
+  // Re-hide the top three in the public projection.
+  const competition = await getCompetition(competitionId);
+  if (competition) {
+    await recalculateLeaderboard(competition);
+  }
 }
 
 export async function initRevealDocument(competitionId: string): Promise<void> {

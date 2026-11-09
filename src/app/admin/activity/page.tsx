@@ -19,7 +19,12 @@ const ACTION_LABELS: Record<string, string> = {
   round_status_change: 'Round Status Changed',
   competition_settings_change: 'Settings Changed',
   reveal_start: 'Reveal Started',
+  reveal_complete: 'Reveal Completed',
   reveal_reset: 'Reveal Reset',
+  scores_reset: 'Scores Reset',
+  teams_reset: 'Teams Reset',
+  round_progress_reset: 'Round Progress Reset',
+  competition_reset: 'Competition Reset',
   admin_added: 'Admin Added',
   admin_removed: 'Admin Removed',
   admin_role_changed: 'Admin Role Changed',
@@ -35,7 +40,12 @@ const ACTION_COLORS: Record<string, string> = {
   score_update: 'text-[#D6A84B]',
   round_status_change: 'text-[#E50914]',
   reveal_start: 'text-[#FFD700]',
+  reveal_complete: 'text-[#16A34A]',
   reveal_reset: 'text-[#E50914]',
+  scores_reset: 'text-[#E50914]',
+  teams_reset: 'text-[#E50914]',
+  round_progress_reset: 'text-[#D6A84B]',
+  competition_reset: 'text-[#E50914]',
 };
 
 export default function ActivityPage() {

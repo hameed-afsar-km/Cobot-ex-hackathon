@@ -16,7 +16,6 @@ function rand(seed: number) {
   return value - Math.floor(value);
 }
 
-// Confetti particle
 function ConfettiParticle({ id, delay }: { id: number; delay: number }) {
   const colors = ['#E50914', '#FF3028', '#FFD700', '#FF6B6B', '#FFA07A', '#FF4500'];
   const color = colors[Math.floor(rand(id + 1) * colors.length)];
@@ -63,7 +62,7 @@ function Confetti({ active }: { active: boolean }) {
   );
 }
 
-function ContenderRow({
+function ContenderCard({
   team,
   nameVisible,
 }: {
@@ -74,10 +73,12 @@ function ContenderRow({
     <motion.div
       layout
       transition={{ layout: { duration: 0.45, ease: 'easeInOut' } }}
-      className="relative flex items-center gap-4 rounded-xl border border-[rgba(185,185,185,0.12)] bg-[rgba(255,255,255,0.018)] p-4 md:p-5"
+      className="relative flex items-center gap-3 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.025] px-3 py-3 backdrop-blur-md sm:gap-4 sm:px-5 sm:py-4"
     >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[rgba(185,185,185,0.12)] bg-[#0d0d0d]">
-        <Users className="h-4 w-4 text-[#858585]" />
+      <span className="absolute inset-y-3 left-0 w-px bg-gradient-to-b from-transparent via-[#E50914]/70 to-transparent" />
+
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.08] bg-[#0d0d0d] sm:h-11 sm:w-11">
+        <Users className="h-3.5 w-3.5 text-[#858585] sm:h-4 sm:w-4" />
       </span>
 
       <motion.p
@@ -88,12 +89,12 @@ function ContenderRow({
             : { filter: 'blur(10px)', opacity: 0.55 }
         }
         transition={{ duration: 0.7, ease: 'easeOut' }}
-        className="min-w-0 flex-1 truncate text-xl font-black text-[#F5F5F5] md:text-2xl"
+        className="min-w-0 flex-1 truncate text-lg font-black text-[#F5F5F5] sm:text-xl md:text-2xl"
       >
         {team.teamName}
       </motion.p>
 
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#5f5f5f]">
+      <span className="shrink-0 rounded-full border border-white/[0.07] bg-white/[0.02] px-2 py-1 text-[8px] font-semibold uppercase tracking-[0.2em] text-[#6b6b6b] sm:px-2.5 sm:text-[9px]">
         Finalist
       </span>
     </motion.div>
@@ -107,15 +108,11 @@ const PODIUM_STYLES = {
     icon: Crown,
     accentRgb: '255,215,0',
     text: 'rank-gold',
-    card:
-      'linear-gradient(180deg, rgba(255,215,0,0.16) 0%, rgba(255,215,0,0.03) 38%, rgba(12,7,7,0.96) 100%)',
-    border: 'rgba(255,215,0,0.45)',
-    glow: '0 0 60px rgba(255,215,0,0.20), 0 0 120px rgba(229,9,20,0.08)',
-    pedestal:
-      'linear-gradient(180deg, rgba(255,215,0,0.22) 0%, rgba(60,20,8,0.60) 45%, rgba(10,6,6,0.98) 100%)',
-    cardHeight: 'min-h-[15rem] md:min-h-[17rem]',
-    pedestalHeight: 'h-28 md:h-32',
-    order: 'order-1 md:order-2',
+    surface:
+      'linear-gradient(180deg, rgba(255,215,0,0.18) 0%, rgba(56,39,6,0.34) 42%, rgba(7,6,5,0.98) 100%)',
+    border: 'rgba(255,215,0,0.52)',
+    glow: '0 -20px 90px rgba(255,215,0,0.18), 0 30px 120px rgba(229,9,20,0.12)',
+    height: 'h-[16rem] sm:h-[20rem] md:h-[24rem]',
   },
   2: {
     label: '2nd Place',
@@ -123,15 +120,11 @@ const PODIUM_STYLES = {
     icon: Medal,
     accentRgb: '201,201,201',
     text: 'rank-silver',
-    card:
-      'linear-gradient(180deg, rgba(201,201,201,0.10) 0%, rgba(201,201,201,0.02) 38%, rgba(12,7,7,0.96) 100%)',
-    border: 'rgba(201,201,201,0.32)',
-    glow: '0 0 45px rgba(201,201,201,0.12)',
-    pedestal:
-      'linear-gradient(180deg, rgba(201,201,201,0.16) 0%, rgba(40,40,40,0.50) 45%, rgba(10,6,6,0.98) 100%)',
-    cardHeight: 'min-h-[13rem] md:min-h-[15rem]',
-    pedestalHeight: 'h-20 md:h-24',
-    order: 'order-2 md:order-1',
+    surface:
+      'linear-gradient(180deg, rgba(201,201,201,0.13) 0%, rgba(40,40,40,0.28) 42%, rgba(7,6,5,0.98) 100%)',
+    border: 'rgba(201,201,201,0.36)',
+    glow: '0 -16px 70px rgba(201,201,201,0.12)',
+    height: 'h-[13rem] sm:h-[17rem] md:h-[20rem]',
   },
   3: {
     label: '3rd Place',
@@ -139,19 +132,15 @@ const PODIUM_STYLES = {
     icon: Award,
     accentRgb: '205,127,50',
     text: 'rank-bronze',
-    card:
-      'linear-gradient(180deg, rgba(205,127,50,0.11) 0%, rgba(205,127,50,0.02) 38%, rgba(12,7,7,0.96) 100%)',
-    border: 'rgba(205,127,50,0.34)',
-    glow: '0 0 40px rgba(205,127,50,0.12)',
-    pedestal:
-      'linear-gradient(180deg, rgba(205,127,50,0.18) 0%, rgba(50,25,10,0.50) 45%, rgba(10,6,6,0.98) 100%)',
-    cardHeight: 'min-h-[11rem] md:min-h-[13rem]',
-    pedestalHeight: 'h-16 md:h-20',
-    order: 'order-3 md:order-3',
+    surface:
+      'linear-gradient(180deg, rgba(205,127,50,0.15) 0%, rgba(45,24,10,0.3) 42%, rgba(7,6,5,0.98) 100%)',
+    border: 'rgba(205,127,50,0.4)',
+    glow: '0 -14px 65px rgba(205,127,50,0.12)',
+    height: 'h-[11rem] sm:h-[15rem] md:h-[18rem]',
   },
 } as const;
 
-function PodiumCard({
+function PodiumColumn({
   position,
   team,
   revealed,
@@ -164,122 +153,115 @@ function PodiumCard({
   const Icon = style.icon;
 
   return (
-    <div className={`relative flex min-w-0 w-full flex-col justify-end ${style.order} md:flex-1`}>
-      <motion.div
-        className="relative overflow-hidden rounded-t-2xl border px-4 pb-6 pt-7 text-center md:px-5"
-        style={{
-          background: revealed ? style.card : 'rgba(255,255,255,0.015)',
-          borderColor: revealed ? style.border : 'rgba(185,185,185,0.10)',
-          boxShadow: revealed ? style.glow : 'none',
-        }}
-        animate={{
-          opacity: revealed ? 1 : 0.55,
-          filter: revealed ? 'blur(0px)' : 'blur(2px)',
-        }}
-        transition={{ duration: 0.55, ease: 'easeOut' }}
-      >
-        <span
-          className="pointer-events-none absolute -right-1 -top-6 select-none text-[7rem] font-black leading-none text-white/[0.035] md:text-[8rem]"
-          aria-hidden
-        >
-          {revealed ? position : '?'}
-        </span>
-
-        <div className={`relative flex flex-col ${style.cardHeight}`}>
-          {revealed && team ? (
-            <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.08, duration: 0.5, ease: 'easeOut' }}
-              className="flex w-full flex-1 flex-col items-center justify-end"
-            >
-              <div
-                className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border"
-                style={{
-                  borderColor: `rgba(${style.accentRgb},0.45)`,
-                  background: `radial-gradient(circle at 50% 30%, rgba(${style.accentRgb},0.22), rgba(10,6,6,0.85))`,
-                  boxShadow: `0 0 24px rgba(${style.accentRgb},0.18)`,
-                }}
-              >
-                <Icon className={`h-6 w-6 ${style.text}`} />
-              </div>
-
-              <p className={`text-[10px] font-bold uppercase tracking-[0.32em] ${style.text}`}>
-                {style.label}
-              </p>
-              <p className="mt-1 text-[9px] uppercase tracking-[0.28em] text-[#7a7a7a]">
-                {style.caption}
-              </p>
-
-              <h3
-                className={`mt-4 w-full text-lg font-black leading-tight text-[#F5F5F5] [text-wrap:balance] md:text-xl ${
-                  position === 1 ? 'md:text-2xl' : ''
-                }`}
-              >
-                {team.teamName}
-              </h3>
-
-              <div className="mt-auto w-full pt-5">
-                <div
-                  className="mx-auto mb-3 h-px w-14"
-                  style={{
-                    background: `linear-gradient(90deg, transparent, rgba(${style.accentRgb},0.6), transparent)`,
-                  }}
-                />
-                <p className="text-[9px] uppercase tracking-[0.28em] text-[#7a7a7a]">
-                  Overall Score
-                </p>
-                <p className={`rank-number mt-1 text-4xl font-black md:text-5xl ${style.text}`}>
-                  {team.finalScore}
-                  <span className="ml-1 text-xs font-normal text-[#858585]">/150</span>
-                </p>
-              </div>
-            </motion.div>
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/[0.02]">
-                <Lock className="h-5 w-5 text-[#5f5f5f]" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase tracking-[0.28em] text-[#5f5f5f]">Awaiting</p>
-                <p className="text-[9px] uppercase tracking-[0.24em] text-[#454545]">Reveal</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </motion.div>
-
-      <motion.div
-        className={`relative flex ${style.pedestalHeight} items-center justify-center overflow-hidden rounded-b-lg border-x border-b`}
+    <motion.div
+      className={`relative flex w-full max-w-[14rem] flex-1 basis-0 flex-col items-center justify-between overflow-hidden rounded-t-[1.75rem] border px-2 pb-4 pt-5 text-center sm:rounded-t-[2rem] sm:px-4 sm:pb-6 sm:pt-7 md:px-5 ${style.height}`}
+      style={{
+        background: revealed
+          ? style.surface
+          : 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(5,5,5,0.96))',
+        borderColor: revealed ? style.border : 'rgba(255,255,255,0.08)',
+        boxShadow: revealed ? style.glow : 'none',
+      }}
+      animate={{
+        opacity: revealed ? 1 : 0.55,
+        filter: revealed ? 'blur(0px)' : 'blur(1.5px)',
+      }}
+      transition={{ duration: 0.55, ease: 'easeOut' }}
+    >
+      <div
+        className="absolute inset-x-0 top-0 h-px"
         style={{
           background: revealed
-            ? style.pedestal
-            : 'linear-gradient(180deg, rgba(255,255,255,0.025), rgba(8,5,5,0.98))',
-          borderColor: revealed ? `rgba(${style.accentRgb},0.28)` : 'rgba(185,185,185,0.08)',
+            ? `linear-gradient(90deg, transparent, rgba(${style.accentRgb},0.7), transparent)`
+            : 'rgba(255,255,255,0.08)',
         }}
-        animate={{ opacity: revealed ? 1 : 0.6 }}
-        transition={{ duration: 0.5 }}
-      >
+      />
+
+      <div className="relative flex w-full flex-col items-center">
         <div
-          className="absolute inset-x-0 top-0 h-px"
+          className="flex h-9 w-9 items-center justify-center rounded-full border sm:h-11 sm:w-11"
           style={{
-            background: `linear-gradient(90deg, transparent, rgba(${style.accentRgb},0.5), transparent)`,
+            borderColor: revealed
+              ? `rgba(${style.accentRgb},0.45)`
+              : 'rgba(255,255,255,0.08)',
+            background: revealed
+              ? `radial-gradient(circle at 50% 30%, rgba(${style.accentRgb},0.22), rgba(8,6,5,0.9))`
+              : 'rgba(255,255,255,0.02)',
           }}
-        />
-        <motion.span
-          className={`rank-number text-4xl font-black md:text-6xl ${
-            revealed ? style.text : 'text-[#2f2f2f]'
+        >
+          <Icon
+            className={`h-4 w-4 sm:h-5 sm:w-5 ${
+              revealed ? style.text : 'text-[#555]'
+            }`}
+          />
+        </div>
+
+        <p
+          className={`mt-2 text-[8px] font-bold uppercase tracking-[0.22em] sm:text-[9px] ${
+            revealed ? style.text : 'text-[#555]'
           }`}
-          animate={{ opacity: revealed ? 0.9 : 0.5, scale: revealed ? 1 : 0.86 }}
+        >
+          {style.label}
+        </p>
+        <p className="mt-0.5 text-[7px] uppercase tracking-[0.18em] text-[#666] sm:text-[8px]">
+          {style.caption}
+        </p>
+      </div>
+
+      {revealed && team ? (
+        <motion.div
+          initial={{ opacity: 0, y: 14, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ delay: 0.08, duration: 0.5, ease: 'easeOut' }}
+          className="relative flex w-full flex-col items-center"
+        >
+          <h3
+            className={`w-full text-balance text-center text-[11px] font-black leading-tight text-[#F5F5F5] sm:text-base md:text-xl ${
+              position === 1 ? 'md:text-2xl' : ''
+            }`}
+          >
+            {team.teamName}
+          </h3>
+
+          <div
+            className="mx-auto mt-2 h-px w-8 sm:mt-3 sm:w-12"
+            style={{
+              background: `linear-gradient(90deg, transparent, rgba(${style.accentRgb},0.65), transparent)`,
+            }}
+          />
+
+          <p className="mt-2 flex items-baseline justify-center sm:mt-3">
+            <span
+              className={`rank-number text-3xl font-black sm:text-4xl md:text-5xl ${style.text}`}
+            >
+              {team.finalScore}
+            </span>
+            <span className="ml-1 text-[8px] font-normal text-[#858585] sm:text-[10px]">
+              /150
+            </span>
+          </p>
+        </motion.div>
+      ) : (
+        <div className="relative flex flex-col items-center gap-2">
+          <Lock className="h-4 w-4 text-[#555]" />
+          <p className="text-[7px] uppercase tracking-[0.18em] text-[#555] sm:text-[8px]">
+            Awaiting reveal
+          </p>
+        </div>
+      )}
+
+      <div className="relative flex w-full items-end justify-center">
+        <motion.span
+          className={`rank-number text-5xl font-black leading-none sm:text-6xl md:text-7xl ${
+            revealed ? style.text : 'text-white/[0.06]'
+          }`}
+          animate={{ opacity: revealed ? 0.95 : 0.65, scale: revealed ? 1 : 0.9 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
         >
           {revealed ? position : '?'}
         </motion.span>
-        <span className="absolute bottom-2 text-[8px] uppercase tracking-[0.3em] text-[#5f5f5f]">
-          {revealed ? 'Place' : 'TBD'}
-        </span>
-      </motion.div>
-    </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -358,7 +340,7 @@ export default function RevealPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#050505] flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-2 border-[#111] border-t-[#E50914] rounded-full animate-spin mx-auto mb-4" />
           <p className="text-[#858585]">Connecting to reveal...</p>
@@ -369,14 +351,17 @@ export default function RevealPage() {
 
   if (!revealState || revealState.status === 'concealed') {
     return (
-      <div className="relative isolate min-h-screen bg-[#050505] flex flex-col items-center justify-center gap-6 overflow-hidden">
+      <div className="relative isolate flex min-h-[100dvh] flex-col items-center justify-center gap-6 overflow-hidden bg-[#050505]">
         <AuroraBackground />
         <div className="relative z-10 text-center">
           <Trophy className="w-16 h-16 text-[#E50914] mx-auto mb-4 opacity-50" />
           <h1 className="text-3xl font-bold text-[#F5F5F5] mb-2">Winner Reveal</h1>
           <p className="text-[#858585]">The reveal has not started yet. Stay tuned!</p>
         </div>
-        <Link href="/" className="relative z-10 flex items-center gap-2 text-[#858585] hover:text-[#E50914] transition-colors text-sm">
+        <Link
+          href="/"
+          className="relative z-10 flex items-center gap-2 text-[#858585] hover:text-[#E50914] transition-colors text-sm"
+        >
           <ArrowLeft className="w-4 h-4" />
           Back to Leaderboard
         </Link>
@@ -386,7 +371,7 @@ export default function RevealPage() {
 
   if (!topThree) {
     return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-[#050505] flex items-center justify-center">
         <p className="text-[#858585]">Preparing the final standings...</p>
       </div>
     );
@@ -415,166 +400,202 @@ export default function RevealPage() {
   const stageLabel = STAGE_LABELS[currentStage] ?? 'Winner Reveal';
 
   return (
-    <main className="min-h-screen bg-[#050505] relative isolate overflow-hidden flex flex-col items-center justify-center">
+    <main className="relative isolate flex h-[100dvh] w-full flex-col overflow-hidden bg-[#050505] text-[#F5F5F5]">
       <AuroraBackground />
 
-      {/* Atmospheric background */}
-      <div className="fixed inset-0 pointer-events-none opacity-50">
-        <motion.div
-          className="absolute inset-0"
-          animate={isCelebration ? {
-            background: [
-              'radial-gradient(ellipse at 50% 50%, rgba(229,9,20,0.15) 0%, transparent 70%)',
-              'radial-gradient(ellipse at 50% 50%, rgba(229,9,20,0.3) 0%, transparent 70%)',
-              'radial-gradient(ellipse at 50% 50%, rgba(229,9,20,0.15) 0%, transparent 70%)',
-            ]
-          } : {}}
-          transition={{ duration: 2, repeat: Infinity }}
-        />
-      </div>
+      {/* Atmosphere */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(229,9,20,0.18),transparent_58%)]" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.035]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.55) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.55) 1px, transparent 1px)',
+          backgroundSize: '72px 72px',
+          maskImage: 'radial-gradient(ellipse at center, black, transparent 78%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at center, black, transparent 78%)',
+        }}
+      />
+      <motion.div
+        className="pointer-events-none absolute inset-0 opacity-50"
+        animate={
+          isCelebration
+            ? {
+                background: [
+                  'radial-gradient(ellipse at 50% 65%, rgba(229,9,20,0.10) 0%, transparent 65%)',
+                  'radial-gradient(ellipse at 50% 65%, rgba(229,9,20,0.24) 0%, transparent 65%)',
+                  'radial-gradient(ellipse at 50% 65%, rgba(229,9,20,0.10) 0%, transparent 65%)',
+                ],
+              }
+            : {}
+        }
+        transition={{ duration: 2.4, repeat: Infinity }}
+      />
 
-      {/* Confetti */}
       <Confetti active={isCelebration} />
 
-      {/* Back link */}
-      <Link
-        href="/"
-        className="fixed top-4 left-4 flex items-center gap-2 text-[#858585] hover:text-[#E50914] transition-colors text-sm z-40"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Leaderboard
-      </Link>
-
-      <div className="relative z-10 container mx-auto px-4 py-12 max-w-5xl">
-
-        {/* Title */}
-        <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-10"
+      {/* Top bar */}
+      <header className="relative z-30 flex items-center justify-between gap-4 px-4 py-4 sm:px-6 md:px-8">
+        <Link
+          href="/"
+          className="group flex items-center gap-2 text-xs text-[#858585] transition-colors hover:text-[#F5F5F5]"
         >
-          <h1 className="text-4xl md:text-6xl font-black text-[#F5F5F5] tracking-tight glow-red-text mb-2">
-            WINNER REVEAL
-          </h1>
-          <div className="h-0.5 w-32 bg-gradient-to-r from-transparent via-[#E50914] to-transparent mx-auto" />
-          <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[rgba(229,9,20,0.3)] bg-[rgba(229,9,20,0.06)] px-4 py-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E50914] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E50914]" />
-            </span>
-            <span className="text-xs font-semibold uppercase tracking-widest text-[#E50914]" aria-live="polite">
-              {stageLabel}
-            </span>
-          </div>
-        </motion.div>
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+          <span className="hidden sm:inline">Leaderboard</span>
+        </Link>
 
-        {/* STAGE 1â€“3: Sequential name reveals, shuffle, full re-blur */}
+        <div className="flex items-center gap-2 rounded-full border border-[rgba(229,9,20,0.28)] bg-[rgba(229,9,20,0.06)] px-3 py-1.5 backdrop-blur-md">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E50914] opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E50914]" />
+          </span>
+          <span
+            className="text-[8px] font-semibold uppercase tracking-[0.2em] text-[#E50914] sm:text-[9px]"
+            aria-live="polite"
+          >
+            {stageLabel}
+          </span>
+        </div>
+
+        <div className="hidden text-right sm:block">
+          <p className="text-[8px] uppercase tracking-[0.28em] text-[#555]">Live reveal</p>
+          <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#858585]">
+            Cobot-ex 2026
+          </p>
+        </div>
+      </header>
+
+      {/* Stage */}
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-6 sm:px-6">
         <AnimatePresence mode="wait">
           {(isNamePhase || isReblur) && (
-            <motion.div
-              key="contender-phase"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              className="mx-auto max-w-xl space-y-3"
+            <motion.section
+              key="name-stage"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              className="flex w-full max-w-xl flex-col items-center"
             >
+              <div className="text-center">
+                <p className="text-[9px] uppercase tracking-[0.52em] text-[#E50914]">
+                  The reveal
+                </p>
+                <h1 className="mt-2 text-[clamp(2rem,6vw,4.5rem)] font-black leading-[0.88] tracking-[-0.055em]">
+                  {isReblur ? 'Stand by.' : 'Meet the finalists.'}
+                </h1>
+                <p className="mt-2 text-xs text-[#858585] sm:text-sm">
+                  {isReblur
+                    ? 'The final standings are being locked.'
+                    : 'Names first. Positions and scores arrive on the podium.'}
+                </p>
+              </div>
+
+              <div className="mt-6 w-full space-y-2.5 sm:mt-8 sm:space-y-3">
+                {displayOrder.map(position => {
+                  const contender = contenders.find(item => item.position === position);
+                  if (!contender) return null;
+
+                  return (
+                    <ContenderCard
+                      key={contender.position}
+                      team={contender.team}
+                      nameVisible={!isReblur && contenderPositionByName[contender.position]}
+                    />
+                  );
+                })}
+              </div>
+
               <motion.p
-                key={currentStage}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 text-center text-sm uppercase tracking-[0.25em] text-[#858585]"
-              >
-                {isReblur ? 'Stand by...' : 'Finalists'}
-              </motion.p>
-
-              {displayOrder.map(position => {
-                const contender = contenders.find(item => item.position === position);
-                if (!contender) return null;
-
-                return (
-                  <ContenderRow
-                    key={contender.position}
-                    team={contender.team}
-                    nameVisible={!isReblur && contenderPositionByName[contender.position]}
-                  />
-                );
-              })}
-
-              <motion.p
-                animate={{ opacity: isReblur ? [0.35, 0.7, 0.35] : 0.7 }}
+                animate={{ opacity: isReblur ? [0.35, 0.7, 0.35] : 0.65 }}
                 transition={{ duration: 1.6, repeat: isReblur ? Infinity : 0 }}
-                className="pt-4 text-center text-xs uppercase tracking-[0.2em] text-[#858585]"
+                className="mt-5 text-center text-[8px] uppercase tracking-[0.24em] text-[#666] sm:mt-6 sm:text-[9px]"
               >
                 {isReblur
                   ? 'Locking in final standings'
                   : currentStage === 'shuffle'
                     ? 'Determining final order'
-                    : 'Positions and scores revealed at the podium'}
+                    : 'Positions revealed at the podium'}
               </motion.p>
-            </motion.div>
+            </motion.section>
           )}
-        </AnimatePresence>
 
-        {/* STAGE 4â€“5: Podium + celebration */}
-        <AnimatePresence>
           {isFinalPhase && (
-            <motion.div
-              key="podium-phase"
-              initial={{ opacity: 0, y: 30 }}
+            <motion.section
+              key="podium-stage"
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center"
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.55, ease: 'easeOut' }}
+              className="flex w-full max-w-5xl flex-col items-center"
             >
-              {isCelebration && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6 }}
-                  className="mb-8"
-                >
-                  <p className="text-6xl mb-2">ðŸŽ‰</p>
-                  <h2 className="text-3xl md:text-4xl font-black text-[#FFD700] glow-red-text">
-                    CONGRATULATIONS!
-                  </h2>
-                  <p className="text-[#858585] mt-2">Competition Complete</p>
-                </motion.div>
-              )}
+              <AnimatePresence mode="wait">
+                {isCelebration ? (
+                  <motion.div
+                    key="celebration-copy"
+                    initial={{ opacity: 0, y: 14, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="text-center"
+                  >
+                    <p className="text-[8px] font-semibold uppercase tracking-[0.5em] text-[#E50914] sm:text-[9px]">
+                      The results are in
+                    </p>
+                    <h1 className="mt-2 bg-[linear-gradient(180deg,#FFF8D6_0%,#FFD700_42%,#E50914_100%)] bg-clip-text text-[clamp(2rem,7vw,5.8rem)] font-black leading-[0.84] tracking-[-0.065em] text-transparent [text-wrap:balance]">
+                      CONGRATULATIONS
+                    </h1>
+                    <p className="mt-2 text-[8px] uppercase tracking-[0.3em] text-[#858585] sm:text-[9px]">
+                      Competition complete
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="podium-copy"
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="text-center"
+                  >
+                    <p className="text-[8px] font-semibold uppercase tracking-[0.5em] text-[#E50914] sm:text-[9px]">
+                      Final Podium
+                    </p>
+                    <h1 className="mt-2 text-[clamp(1.8rem,5vw,4.2rem)] font-black leading-[0.9] tracking-[-0.055em] text-[#F5F5F5]">
+                      The winners are in.
+                    </h1>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-              {/* Podium */}
-              <div className="relative mx-auto mt-10 max-w-5xl">
-                <div className="mb-6 flex items-center justify-center gap-4">
-                  <span className="h-px w-12 bg-gradient-to-r from-transparent to-[rgba(229,9,20,0.6)]" />
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-[#858585]">
-                    Final Podium
-                  </p>
-                  <span className="h-px w-12 bg-gradient-to-l from-transparent to-[rgba(229,9,20,0.6)]" />
+              <div className="relative mt-6 w-full sm:mt-8">
+                <div className="pointer-events-none absolute -inset-x-8 bottom-0 h-48 bg-[radial-gradient(ellipse_at_50%_100%,rgba(229,9,20,0.22),transparent_70%)] sm:h-56" />
+
+                <div className="relative flex items-end justify-center gap-1.5 sm:gap-3 md:gap-5">
+                  <PodiumColumn
+                    position={2}
+                    team={podiumSecondRevealed ? topThree.second : null}
+                    revealed={podiumSecondRevealed}
+                  />
+                  <PodiumColumn
+                    position={1}
+                    team={podiumFirstRevealed ? topThree.first : null}
+                    revealed={podiumFirstRevealed}
+                  />
+                  <PodiumColumn
+                    position={3}
+                    team={podiumThirdRevealed ? topThree.third : null}
+                    revealed={podiumThirdRevealed}
+                  />
                 </div>
 
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-[rgba(229,9,20,0.55)] to-transparent" />
-                  <div className="pointer-events-none absolute inset-x-10 bottom-0 h-40 bg-[radial-gradient(ellipse_at_50%_100%,rgba(229,9,20,0.18),transparent_70%)]" />
-
-                  <div className="relative flex flex-col items-stretch justify-center gap-4 md:flex-row md:items-end md:gap-5">
-                    <PodiumCard
-                      position={2}
-                      team={podiumSecondRevealed ? topThree.second : null}
-                      revealed={podiumSecondRevealed}
-                    />
-                    <PodiumCard
-                      position={1}
-                      team={podiumFirstRevealed ? topThree.first : null}
-                      revealed={podiumFirstRevealed}
-                    />
-                    <PodiumCard
-                      position={3}
-                      team={podiumThirdRevealed ? topThree.third : null}
-                      revealed={podiumThirdRevealed}
-                    />
-                  </div>
+                <div className="relative mx-auto h-px w-full max-w-4xl bg-gradient-to-r from-transparent via-[rgba(229,9,20,0.55)] to-transparent" />
+                <div className="relative mx-auto mt-3 flex max-w-4xl items-center justify-center gap-3 text-[7px] uppercase tracking-[0.3em] text-[#555] sm:text-[8px]">
+                  <span className="h-px w-8 bg-white/10" />
+                  <span>Cobot-ex Championship</span>
+                  <span className="h-px w-8 bg-white/10" />
                 </div>
               </div>
-            </motion.div>
+            </motion.section>
           )}
         </AnimatePresence>
       </div>

@@ -1,7 +1,7 @@
 // src/app/admin/settings/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useCompetition } from '@/hooks/useCompetition';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -13,8 +13,11 @@ import {
 } from '@/lib/services/competitionService';
 import { createTeam } from '@/lib/services/teamService';
 import { submitScore } from '@/lib/services/scoreService';
-import { recalculateLeaderboard } from '@/lib/services/leaderboardService';
+import { DEFAULT_COMPETITION_ID, recalculateLeaderboard } from '@/lib/services/leaderboardService';
+import { resetCompetitionData, resetRoundProgress, resetScores, resetTeams } from '@/lib/services/resetService';
+import { resetReveal } from '@/lib/services/revealService';
 import { logActivity } from '@/lib/services/adminService';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { LoadingState } from '@/components/shared/LoadingState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,35 +26,92 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Shield, Save, Database, Sparkles } from 'lucide-react';
-import type { Criterion, TieBreakPolicy } from '@/types/competition';
+import { AlertTriangle, Database, Eraser, RotateCcw, Save, Sparkles, Trash2 } from 'lucide-react';
+import type { Competition, CompetitionStatus, Criterion, TieBreakPolicy } from '@/types/competition';
 import type { Team } from '@/types/team';
+
+type ResetAction = 'reveal' | 'scores' | 'teams' | 'rounds' | 'all';
+
+const RESET_COPY: Record<
+  ResetAction,
+  { title: string; description: string; confirmLabel: string }
+> = {
+  reveal: {
+    title: 'Reset Reveal',
+    description:
+      'This conceals the top three again and recalculates the public leaderboard. Scores and teams are kept. Continue?',
+    confirmLabel: 'Conceal Top 3',
+  },
+  scores: {
+    title: 'Reset All Scores',
+    description:
+      'This permanently deletes every score and score-history entry. Teams and round progress are kept, but the leaderboard will show zero scores and the top three will be concealed. Continue?',
+    confirmLabel: 'Reset Scores',
+  },
+  teams: {
+    title: 'Reset Teams',
+    description:
+      'This permanently deletes every team, score, score-history entry, and leaderboard snapshot. The public leaderboard will be emptied and the reveal reset. Continue?',
+    confirmLabel: 'Reset Teams',
+  },
+  rounds: {
+    title: 'Reset Round Progress',
+    description:
+      'This returns every round to Not Started, clears round timestamps and locks, and sets the competition back to Upcoming. Scores and teams are kept. Continue?',
+    confirmLabel: 'Reset Rounds',
+  },
+  all: {
+    title: 'Reset Competition Data',
+    description:
+      'This permanently deletes all teams, scores, history, snapshots, the public leaderboard, and the reveal state, then reinitializes the competition with default settings. Admin accounts and activity logs are preserved. This cannot be undone. Continue?',
+    confirmLabel: 'Reset Everything',
+  },
+};
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
+
+const RESET_OPTIONS: Array<{
+  action: ResetAction;
+  icon: typeof AlertTriangle;
+  tone: 'red' | 'amber';
+}> = [
+  { action: 'reveal', icon: RotateCcw, tone: 'amber' },
+  { action: 'scores', icon: Eraser, tone: 'red' },
+  { action: 'teams', icon: Trash2, tone: 'red' },
+  { action: 'rounds', icon: RotateCcw, tone: 'amber' },
+  { action: 'all', icon: AlertTriangle, tone: 'red' },
+];
 
 export default function SettingsPage() {
   const { competition, loading } = useCompetition();
-  const { adminUser, isSuperAdmin } = useAuth();
-
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [status, setStatus] = useState<any>('upcoming');
-  const [allowDecimals, setAllowDecimals] = useState(false);
-  const [tieBreakPolicy, setTieBreakPolicy] = useState<TieBreakPolicy>('shared_position');
-  const [criteria, setCriteria] = useState<Criterion[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [seeding, setSeeding] = useState(false);
-
-  useEffect(() => {
-    if (competition) {
-      setName(competition.name || '');
-      setDescription(competition.description || '');
-      setStatus(competition.status || 'upcoming');
-      setAllowDecimals(competition.allowDecimalScores || false);
-      setTieBreakPolicy(competition.tieBreakConfig?.policy || 'shared_position');
-      setCriteria(competition.criteria || DEFAULT_CRITERIA);
-    }
-  }, [competition]);
 
   if (loading) return <LoadingState message="Loading settings..." />;
+
+  return (
+    <SettingsForm
+      key={competition?.updatedAt ?? 'new'}
+      competition={competition}
+    />
+  );
+}
+
+function SettingsForm({ competition }: { competition: Competition | null }) {
+  const { adminUser } = useAuth();
+
+  const [name, setName] = useState(competition?.name || '');
+  const [description, setDescription] = useState(competition?.description || '');
+  const [status, setStatus] = useState<CompetitionStatus>(competition?.status || 'upcoming');
+  const [allowDecimals, setAllowDecimals] = useState(competition?.allowDecimalScores || false);
+  const [tieBreakPolicy, setTieBreakPolicy] = useState<TieBreakPolicy>(
+    competition?.tieBreakConfig?.policy || 'shared_position'
+  );
+  const [criteria, setCriteria] = useState<Criterion[]>(competition?.criteria || DEFAULT_CRITERIA);
+  const [saving, setSaving] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [resetAction, setResetAction] = useState<ResetAction | null>(null);
+  const [resetting, setResetting] = useState<ResetAction | null>(null);
 
   const handleSaveGeneral = async () => {
     if (!name.trim()) {
@@ -76,14 +136,14 @@ export default function SettingsPage() {
         });
       }
       toast.success('Competition settings updated');
-    } catch (err: any) {
-      toast.error('Failed to save settings', { description: err?.message });
+    } catch (err) {
+      toast.error('Failed to save settings', { description: errorMessage(err) });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCriterionChange = (index: number, field: keyof Criterion, val: any) => {
+  const handleCriterionChange = (index: number, field: 'name' | 'description', val: string) => {
     setCriteria(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: val };
@@ -143,10 +203,61 @@ export default function SettingsPage() {
 
       await recalculateLeaderboard(comp);
       toast.success('Demo competition & scores successfully seeded!');
-    } catch (e: any) {
-      toast.error('Failed to seed demo data', { description: e?.message });
+    } catch (e) {
+      toast.error('Failed to seed demo data', { description: errorMessage(e) });
     } finally {
       setSeeding(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!competition || !adminUser || !resetAction) return;
+    const action = resetAction;
+    setResetting(action);
+
+    try {
+      switch (action) {
+        case 'reveal':
+          await resetReveal(DEFAULT_COMPETITION_ID);
+          await logActivity(adminUser.uid, adminUser.email, 'reveal_reset', {
+            affectedRecordType: 'reveal',
+          });
+          toast.success('Top three concealed again');
+          break;
+        case 'scores':
+          await resetScores(competition);
+          await logActivity(adminUser.uid, adminUser.email, 'scores_reset', {
+            affectedRecordType: 'score',
+          });
+          toast.success('All scores and score history cleared');
+          break;
+        case 'teams':
+          await resetTeams(competition);
+          await logActivity(adminUser.uid, adminUser.email, 'teams_reset', {
+            affectedRecordType: 'team',
+          });
+          toast.success('All teams, scores, and snapshots cleared');
+          break;
+        case 'rounds':
+          await resetRoundProgress(competition);
+          await logActivity(adminUser.uid, adminUser.email, 'round_progress_reset', {
+            affectedRecordType: 'round',
+          });
+          toast.success('Round progress reset to Not Started');
+          break;
+        case 'all':
+          await resetCompetitionData(competition, adminUser.uid);
+          await logActivity(adminUser.uid, adminUser.email, 'competition_reset', {
+            affectedRecordType: 'competition',
+          });
+          toast.success('Competition data reset and reinitialized');
+          break;
+      }
+      setResetAction(null);
+    } catch (err) {
+      toast.error('Reset failed', { description: errorMessage(err) });
+    } finally {
+      setResetting(null);
     }
   };
 
@@ -172,7 +283,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <Label className="text-xs text-[#858585] mb-1.5 block">Competition Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v || 'upcoming')}>
+            <Select value={status} onValueChange={(v) => setStatus((v as CompetitionStatus) || 'upcoming')}>
               <SelectTrigger className="bg-[#0a0a0a] border-[rgba(185,185,185,0.15)] text-[#F5F5F5]">
                 <SelectValue />
               </SelectTrigger>
@@ -295,6 +406,71 @@ export default function SettingsPage() {
           {saving ? 'Saving...' : 'Save Settings'}
         </Button>
       </div>
+
+      {/* Data & Reset */}
+      <div className="rounded-xl border border-[rgba(229,9,20,0.2)] bg-[linear-gradient(180deg,rgba(229,9,20,0.055),rgba(10,10,10,0.98))] p-6 space-y-5">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[rgba(229,9,20,0.3)] bg-[rgba(229,9,20,0.1)]">
+            <Database className="h-4 w-4 text-[#E50914]" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-[#F5F5F5]">Data & Reset</h2>
+            <p className="text-sm text-[#858585] mt-1">
+              Dangerous operations are permanent. Use these to prepare a fresh run or re-hide the podium.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {RESET_OPTIONS.map(({ action, icon: Icon, tone }) => {
+            const copy = RESET_COPY[action];
+            const busy = resetting === action;
+            const red = tone === 'red';
+
+            return (
+              <div
+                key={action}
+                className="flex flex-col gap-3 rounded-lg border border-[rgba(185,185,185,0.08)] bg-[rgba(0,0,0,0.25)] p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-start gap-3">
+                  <Icon
+                    className={`mt-0.5 h-4 w-4 shrink-0 ${
+                      red ? 'text-[#E50914]' : 'text-[#D6A84B]'
+                    }`}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-[#F5F5F5]">{copy.title}</p>
+                    <p className="mt-0.5 text-xs text-[#858585]">{copy.description}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!!resetting}
+                  onClick={() => setResetAction(action)}
+                  className={`shrink-0 ${
+                    red
+                      ? 'border-[rgba(229,9,20,0.3)] text-[#E50914] hover:bg-[rgba(229,9,20,0.08)]'
+                      : 'border-[rgba(214,168,75,0.3)] text-[#D6A84B] hover:bg-[rgba(214,168,75,0.08)]'
+                  }`}
+                >
+                  {busy ? 'Resetting...' : copy.confirmLabel}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <ConfirmDialog
+        open={resetAction !== null}
+        onOpenChange={open => !open && setResetAction(null)}
+        title={resetAction ? RESET_COPY[resetAction].title : 'Reset'}
+        description={resetAction ? RESET_COPY[resetAction].description : ''}
+        confirmLabel={resetAction ? RESET_COPY[resetAction].confirmLabel : 'Reset'}
+        variant="destructive"
+        onConfirm={handleReset}
+      />
     </div>
   );
 }

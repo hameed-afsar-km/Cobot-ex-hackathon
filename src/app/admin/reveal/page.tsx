@@ -1,8 +1,7 @@
 // src/app/admin/reveal/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 import { Play, RotateCcw, Trophy, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
@@ -10,7 +9,7 @@ import { LoadingState } from '@/components/shared/LoadingState';
 import { useCompetition } from '@/hooks/useCompetition';
 import { useReveal } from '@/hooks/useReveal';
 import { useAuth } from '@/hooks/useAuth';
-import { initiateReveal, resetReveal } from '@/lib/services/revealService';
+import { completeReveal, initiateReveal, resetReveal, DEFAULT_ANIMATION_CONFIG } from '@/lib/services/revealService';
 import { getAllTeams } from '@/lib/services/teamService';
 import { getAllScores } from '@/lib/services/scoreService';
 import { logActivity } from '@/lib/services/adminService';
@@ -22,6 +21,10 @@ import type { Score } from '@/types/score';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { DEFAULT_COMPETITION_ID } from '@/lib/services/leaderboardService';
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unknown error';
+}
 
 function ReadinessCheck({ label, ok, warning }: { label: string; ok: boolean; warning?: string }) {
   return (
@@ -48,6 +51,7 @@ export default function RevealAdminPage() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [acting, setActing] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const completingRef = useRef(false);
 
   useEffect(() => {
     const load = async () => {
@@ -95,6 +99,39 @@ export default function RevealAdminPage() {
     if (!compLoading) load();
   }, [competition, compLoading]);
 
+  useEffect(() => {
+    if (!competition || revealState?.status !== 'revealing' || !revealState.startedAt) return;
+    if (completingRef.current) return;
+
+    const stageDuration =
+      revealState.animationConfig?.stageDuration ?? DEFAULT_ANIMATION_CONFIG.stageDuration;
+    const totalDuration = Object.values(stageDuration).reduce(
+      (total, duration) => total + (duration ?? 0),
+      0
+    );
+    const remaining = Math.max(0, revealState.startedAt + totalDuration - Date.now()) + 500;
+
+    const timer = window.setTimeout(async () => {
+      if (completingRef.current) return;
+      completingRef.current = true;
+      try {
+        await completeReveal(DEFAULT_COMPETITION_ID);
+        if (adminUser) {
+          await logActivity(adminUser.uid, adminUser.email, 'reveal_complete', {
+            affectedRecordType: 'reveal',
+          });
+        }
+        toast.success('Reveal complete — the top 3 are now visible on the public leaderboard.');
+      } catch (err) {
+        toast.error('Could not finalize reveal', { description: errorMessage(err) });
+      } finally {
+        completingRef.current = false;
+      }
+    }, remaining);
+
+    return () => window.clearTimeout(timer);
+  }, [competition, revealState, adminUser]);
+
   const allRoundsComplete = competition?.rounds?.every(r => r.status === 'completed' || r.status === 'locked') ?? false;
   const hasTopThree = !!topThree;
   const evaluatedTeams = new Set(scores.filter(s => s.evaluationStatus === 'evaluated').map(s => s.teamId)).size;
@@ -110,11 +147,29 @@ export default function RevealAdminPage() {
         metadata: { topThree },
       });
       toast.success('Winner reveal started! All screens will sync.');
-    } catch (err: any) {
-      toast.error('Failed to start reveal', { description: err?.message });
+    } catch (err) {
+      toast.error('Failed to start reveal', { description: errorMessage(err) });
     } finally {
       setActing(false);
       setConfirmReveal(false);
+    }
+  };
+
+  const handleFinalizeReveal = async () => {
+    if (!adminUser || completingRef.current) return;
+    completingRef.current = true;
+    setActing(true);
+    try {
+      await completeReveal(DEFAULT_COMPETITION_ID);
+      await logActivity(adminUser.uid, adminUser.email, 'reveal_complete', {
+        affectedRecordType: 'reveal',
+      });
+      toast.success('Reveal finalized — the top 3 are now visible on the public leaderboard.');
+    } catch (err) {
+      toast.error('Failed to finalize reveal', { description: errorMessage(err) });
+    } finally {
+      completingRef.current = false;
+      setActing(false);
     }
   };
 
@@ -125,8 +180,8 @@ export default function RevealAdminPage() {
       await resetReveal(DEFAULT_COMPETITION_ID);
       await logActivity(adminUser.uid, adminUser.email, 'reveal_reset', { affectedRecordType: 'reveal' });
       toast.success('Reveal reset successfully');
-    } catch (err: any) {
-      toast.error('Failed to reset reveal', { description: err?.message });
+    } catch (err) {
+      toast.error('Failed to reset reveal', { description: errorMessage(err) });
     } finally {
       setActing(false);
       setConfirmReset(false);
@@ -240,6 +295,28 @@ export default function RevealAdminPage() {
             Launch Winner Reveal
           </Button>
         )}
+        {revealStatus === 'revealing' && (
+          <Button
+            onClick={handleFinalizeReveal}
+            disabled={acting}
+            variant="outline"
+            className="border-[rgba(22,163,74,0.3)] text-[#16A34A] hover:bg-[rgba(22,163,74,0.08)] flex items-center gap-2"
+          >
+            <CheckCircle className="w-4 h-4" />
+            Finalize & Unblur Leaderboard
+          </Button>
+        )}
+        {revealStatus === 'revealed' && (
+          <Button
+            onClick={handleFinalizeReveal}
+            disabled={acting}
+            variant="outline"
+            className="border-[rgba(22,163,74,0.3)] text-[#16A34A] hover:bg-[rgba(22,163,74,0.08)] flex items-center gap-2"
+          >
+            <CheckCircle className="w-4 h-4" />
+            Re-sync Public Leaderboard
+          </Button>
+        )}
         {(revealStatus === 'revealing' || revealStatus === 'revealed') && (
           <Button
             onClick={() => setConfirmReset(true)}
@@ -257,7 +334,7 @@ export default function RevealAdminPage() {
         open={confirmReveal}
         onOpenChange={setConfirmReveal}
         title="Start Winner Reveal"
-        description="This broadcasts the full reveal sequence to every connected public screen. Once started it runs automatically: 3rd, 2nd and 1st names unblur, the top three shuffle, everything re-blurs, then the podium fills from 3rd to 1st. No further clicks are needed. Proceed?"
+        description="This broadcasts the full reveal sequence to every connected public screen. Once started it runs automatically: 3rd, 2nd and 1st names unblur, the top three shuffle, everything re-blurs, then the podium fills from 3rd to 1st. Keep this control center open until the sequence finishes so the leaderboard can automatically unblur; you can also finalize manually. Proceed?"
         confirmLabel="Start Reveal"
         onConfirm={handleInitiateReveal}
       />
