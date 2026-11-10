@@ -12,7 +12,7 @@ import { auth } from '@/lib/firebase/config';
 import type { Competition, Round, Criterion, TieBreakConfig } from '@/types/competition';
 
 export const DEFAULT_COMPETITION_ID = 'main';
-export const MARKING_SCHEME_VERSION = 2;
+export const MARKING_SCHEME_VERSION = 3;
 
 export const ROUND_CRITERIA: Record<string, Criterion[]> = {
   round1: [
@@ -24,8 +24,9 @@ export const ROUND_CRITERIA: Record<string, Criterion[]> = {
   round2: [
     { id: 'problem_understanding', name: 'Problem Understanding', description: 'Clarity and depth of understanding of the challenge', maxMarks: 5, displayOrder: 1 },
     { id: 'core_functionality', name: 'Core Functionality', description: 'Working core features and demonstrated capabilities', maxMarks: 20, displayOrder: 2 },
-    { id: 'ui_ux', name: 'UI/UX Design', description: 'Usability, visual design, and overall experience', maxMarks: 10, displayOrder: 3 },
-    { id: 'innovation', name: 'Innovation', description: 'Originality and creativity of the solution', maxMarks: 5, displayOrder: 4 },
+    { id: 'technical_implementation', name: 'Technical Implementation', description: 'Code quality, architecture, and technical execution', maxMarks: 10, displayOrder: 3 },
+    { id: 'ui_ux', name: 'UI/UX Design', description: 'Usability, visual design, and overall experience', maxMarks: 10, displayOrder: 4 },
+    { id: 'innovation', name: 'Innovation', description: 'Originality and creativity of the solution', maxMarks: 5, displayOrder: 5 },
   ],
   round3: [
     { id: 'correct_implementation', name: 'Correct Implementation', description: 'The side quest is implemented correctly and completely', maxMarks: 10, displayOrder: 1 },
