@@ -158,6 +158,7 @@ export async function recalculateLeaderboard(
                 max: criterion.maxMarks,
               };
             }),
+            negativeMarks: score?.negativeMarks ?? 0,
             total: score?.roundTotal ?? null,
             max: getRoundMaxMarks(round, competition.criteria),
           };

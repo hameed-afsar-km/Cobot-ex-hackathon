@@ -244,6 +244,14 @@ export function LeaderboardRow({
                                 </span>
                               </div>
                             ))}
+                            {(round.negativeMarks ?? 0) > 0 && (
+                              <div className="flex justify-between text-xs">
+                                <span className="text-[#E50914] truncate mr-2">Negative Marks</span>
+                                <span className="text-[#E50914] font-medium flex-shrink-0">
+                                  −{round.negativeMarks}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

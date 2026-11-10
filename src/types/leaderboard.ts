@@ -19,6 +19,7 @@ export interface PublicTeamRow {
     roundId: string;
     roundName: string;
     criteria: Array<{ name: string; value: number | null; max: number }>;
+    negativeMarks?: number;
     total: number | null;
     max: number;
   }[];

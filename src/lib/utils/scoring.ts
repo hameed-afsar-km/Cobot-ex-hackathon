@@ -34,13 +34,20 @@ export function getCompetitionMaxScore(competition: Competition): number {
 
 export function calculateRoundTotal(
   criteriaScores: CriterionScore[],
-  requiredCount = 5
+  requiredCount = 5,
+  negativeMarks = 0
 ): number | null {
   if (criteriaScores.length < requiredCount) return null;
   for (const c of criteriaScores) {
     if (c.value === null || c.value === undefined) return null;
   }
-  return criteriaScores.reduce((sum, c) => sum + (c.value ?? 0), 0);
+  const positiveTotal = criteriaScores.reduce((sum, c) => sum + (c.value ?? 0), 0);
+  return positiveTotal - Math.max(0, negativeMarks);
+}
+
+export function sanitizeNegativeMarks(value: number | null | undefined): number {
+  if (value === null || value === undefined || !Number.isFinite(value)) return 0;
+  return Math.max(0, value);
 }
 
 export function calculateFinalScore(roundTotals: (number | null)[]): number {

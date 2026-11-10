@@ -15,6 +15,7 @@ export interface Round {
   name: string;
   status: RoundStatus;
   maxMarks: number;
+  allowNegativeMarks?: boolean;
   criteria?: Criterion[];
   startedAt?: number;
   completedAt?: number;

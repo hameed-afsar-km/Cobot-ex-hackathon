@@ -11,6 +11,7 @@ export interface Score {
   teamId: string;
   roundId: string;
   criteriaScores: CriterionScore[];
+  negativeMarks?: number;
   roundTotal: number | null;
   evaluationStatus: EvaluationStatus;
   updatedBy: string;
@@ -25,6 +26,8 @@ export interface ScoreHistory {
   roundId: string;
   previousScores: CriterionScore[];
   updatedScores: CriterionScore[];
+  previousNegativeMarks?: number;
+  newNegativeMarks?: number;
   previousTotal: number | null;
   newTotal: number | null;
   adminUid: string;

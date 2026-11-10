@@ -17,7 +17,7 @@ import Link from 'next/link';
 import type { Team } from '@/types/team';
 import type { Score, CriterionScore } from '@/types/score';
 import type { Criterion } from '@/types/competition';
-import { getRoundCriteria, getRoundMaxMarks } from '@/lib/utils/scoring';
+import { getRoundCriteria, getRoundMaxMarks, sanitizeNegativeMarks } from '@/lib/utils/scoring';
 import { toast } from 'sonner';
 
 function ScoreInput({
@@ -53,6 +53,7 @@ function TeamScoreRow({
   score,
   criteria,
   maxMarks,
+  allowNegativeMarks,
   onSave,
   locked,
 }: {
@@ -60,10 +61,12 @@ function TeamScoreRow({
   score: Score | undefined;
   criteria: Criterion[];
   maxMarks: number;
-  onSave: (teamId: string, scores: CriterionScore[]) => Promise<void>;
+  allowNegativeMarks: boolean;
+  onSave: (teamId: string, scores: CriterionScore[], negativeMarks: number) => Promise<void>;
   locked: boolean;
 }) {
   const [localScores, setLocalScores] = useState<Record<string, number | null>>({});
+  const [negativeMarks, setNegativeMarks] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -74,13 +77,15 @@ function TeamScoreRow({
       initial[c.id] = found ? found.value : null;
     }
     setLocalScores(initial);
+    setNegativeMarks(score?.negativeMarks ? score.negativeMarks : null);
     setDirty(false);
   }, [score, criteria]);
 
-  const total = criteria.reduce((sum, c) => {
+  const positiveTotal = criteria.reduce((sum, c) => {
     const v = localScores[c.id];
     return v !== null && v !== undefined ? sum + v : sum;
   }, 0);
+  const total = positiveTotal - sanitizeNegativeMarks(negativeMarks);
   const allFilled = criteria.length > 0 && criteria.every(c => localScores[c.id] !== null && localScores[c.id] !== undefined);
 
   const handleChange = (criterionId: string, val: number | null) => {
@@ -95,7 +100,7 @@ function TeamScoreRow({
         criterionId: c.id,
         value: localScores[c.id] ?? null,
       }));
-      await onSave(team.id, cs);
+      await onSave(team.id, cs, allowNegativeMarks ? sanitizeNegativeMarks(negativeMarks) : 0);
       setDirty(false);
     } finally {
       setSaving(false);
@@ -128,6 +133,26 @@ function TeamScoreRow({
           </div>
         </td>
       ))}
+      {allowNegativeMarks && (
+        <td className="px-2 py-3 text-center">
+          <div className="flex justify-center">
+            <Input
+              type="number"
+              min={0}
+              step={1}
+              value={negativeMarks ?? ''}
+              onChange={e => {
+                const v = e.target.value === '' ? null : parseFloat(e.target.value);
+                setNegativeMarks(v !== null && Number.isFinite(v) ? Math.max(0, v) : null);
+                setDirty(true);
+              }}
+              disabled={locked}
+              placeholder="0"
+              className="w-20 text-center bg-[#0a0a0a] border-[rgba(229,9,20,0.25)] text-[#E50914] focus:border-[rgba(229,9,20,0.5)]"
+            />
+          </div>
+        </td>
+      )}
       <td className="px-4 py-3 text-center">
         <span className={`text-sm font-bold rank-number ${allFilled ? 'text-[#F5F5F5]' : 'text-[#858585]'}`}>
           {allFilled ? total : '—'}/{maxMarks}
@@ -163,6 +188,7 @@ function RoundScoringContent() {
   const isLocked = round?.status === 'locked';
   const roundCriteria = competition ? getRoundCriteria(competition, roundId) : [];
   const roundMaxMarks = round ? getRoundMaxMarks(round, competition?.criteria) : 0;
+  const allowNegativeMarks = round?.allowNegativeMarks === true;
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -179,12 +205,13 @@ function RoundScoringContent() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const handleSave = async (teamId: string, criteriaScores: CriterionScore[]) => {
+  const handleSave = async (teamId: string, criteriaScores: CriterionScore[], negativeMarks: number) => {
     if (!competition || !adminUser) return;
     const score = await submitScore(
       teamId, roundId, criteriaScores,
       adminUser.uid, adminUser.email,
-      roundCriteria.length
+      roundCriteria.length,
+      negativeMarks
     );
     setScores(prev => {
       const idx = prev.findIndex(s => s.teamId === teamId && s.roundId === roundId);
@@ -196,7 +223,7 @@ function RoundScoringContent() {
     await logActivity(adminUser.uid, adminUser.email, 'score_submit', {
       affectedRecord: teamId,
       affectedRecordType: 'score',
-      newValue: { roundId, criteriaScores },
+      newValue: { roundId, criteriaScores, negativeMarks },
     });
     toast.success(`Scores saved for ${teams.find(t => t.id === teamId)?.teamName ?? teamId}`);
   };
@@ -255,6 +282,14 @@ function RoundScoringContent() {
                   </div>
                 </th>
               ))}
+              {allowNegativeMarks && (
+                <th className="px-2 py-3 text-center text-xs font-semibold text-[#858585] uppercase tracking-wider min-w-[90px]">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="truncate max-w-[80px]">Negative</span>
+                    <span className="text-[#E50914]">−</span>
+                  </div>
+                </th>
+              )}
               <th className="px-4 py-3 text-center text-xs font-semibold text-[#858585] uppercase tracking-wider">Total</th>
               <th className="px-4 py-3" />
             </tr>
@@ -267,6 +302,7 @@ function RoundScoringContent() {
                 score={scores.find(s => s.teamId === team.id)}
                 criteria={roundCriteria}
                 maxMarks={roundMaxMarks}
+                allowNegativeMarks={allowNegativeMarks}
                 onSave={handleSave}
                 locked={isLocked}
               />

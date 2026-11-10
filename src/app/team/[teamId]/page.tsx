@@ -172,6 +172,14 @@ function TeamDetailsContent() {
                         </div>
                       );
                     })}
+                    {(roundScore?.negativeMarks ?? 0) > 0 && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[#E50914] truncate pr-2">Negative Marks</span>
+                        <span className="font-mono text-[#E50914] font-semibold">
+                          −{roundScore?.negativeMarks}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

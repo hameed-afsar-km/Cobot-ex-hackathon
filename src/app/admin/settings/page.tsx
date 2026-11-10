@@ -181,6 +181,14 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
     });
   };
 
+  const handleNegativeMarksToggle = (roundIndex: number, enabled: boolean) => {
+    setRounds(prev => {
+      const updated = [...prev];
+      updated[roundIndex] = { ...updated[roundIndex], allowNegativeMarks: enabled };
+      return updated;
+    });
+  };
+
   const handleSeedDemoData = async () => {
     if (!confirm('This will populate the database with a competition, 6 demo teams, and scores for rounds 1 and 2. Continue?')) {
       return;
@@ -379,10 +387,26 @@ function SettingsForm({ competition }: { competition: Competition | null }) {
           const roundTotal = round.criteria?.reduce((sum, criterion) => sum + criterion.maxMarks, 0) ?? round.maxMarks;
           return (
             <div key={round.id} className="card-dark rounded-xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="font-semibold text-[#F5F5F5]">{round.name}</h3>
-                <span className="text-xs text-[#858585]">Round Total: {roundTotal} Marks</span>
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={round.allowNegativeMarks === true}
+                      onCheckedChange={checked => handleNegativeMarksToggle(roundIndex, checked)}
+                      className="data-[state=checked]:bg-[#E50914]"
+                    />
+                    <span className="text-xs text-[#858585]">Allow negative marks</span>
+                  </div>
+                  <span className="text-xs text-[#858585]">Round Total: {roundTotal} Marks</span>
+                </div>
               </div>
+
+              {round.allowNegativeMarks && (
+                <p className="text-xs text-[#858585]">
+                  Enter penalty marks while scoring this round. Penalties are subtracted from the round total and overall score.
+                </p>
+              )}
 
               <div className="space-y-3">
                 {(round.criteria ?? []).map((c, criterionIndex) => (

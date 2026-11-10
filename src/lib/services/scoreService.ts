@@ -15,6 +15,7 @@ import type { Score, ScoreHistory, CriterionScore, EvaluationStatus } from '@/ty
 import {
   calculateRoundTotal,
   getEvaluationStatus,
+  sanitizeNegativeMarks,
 } from '@/lib/utils/scoring';
 
 function scoreId(teamId: string, roundId: string): string {
@@ -49,14 +50,16 @@ export async function submitScore(
   criteriaScores: CriterionScore[],
   adminUid: string,
   adminEmail: string,
-  criteriaCount = 5
+  criteriaCount = 5,
+  negativeMarks = 0
 ): Promise<Score> {
   const id = scoreId(teamId, roundId);
   
   // Check for existing score to build history
   const existing = await getScore(teamId, roundId);
-  
-  const roundTotal = calculateRoundTotal(criteriaScores, criteriaCount);
+
+  const normalizedNegativeMarks = sanitizeNegativeMarks(negativeMarks);
+  const roundTotal = calculateRoundTotal(criteriaScores, criteriaCount, normalizedNegativeMarks);
   const evaluationStatus = getEvaluationStatus(criteriaScores, criteriaCount) as EvaluationStatus;
 
   const score: Score = {
@@ -64,6 +67,7 @@ export async function submitScore(
     teamId,
     roundId,
     criteriaScores,
+    negativeMarks: normalizedNegativeMarks,
     roundTotal,
     evaluationStatus,
     updatedBy: adminUid,
@@ -83,6 +87,8 @@ export async function submitScore(
       roundId,
       previousScores: existing.criteriaScores,
       updatedScores: criteriaScores,
+      previousNegativeMarks: existing.negativeMarks ?? 0,
+      newNegativeMarks: normalizedNegativeMarks,
       previousTotal: existing.roundTotal,
       newTotal: roundTotal,
       adminUid,

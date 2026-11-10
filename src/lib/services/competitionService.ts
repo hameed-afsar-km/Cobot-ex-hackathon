@@ -41,7 +41,7 @@ export const DEFAULT_CRITERIA: Criterion[] = ROUND_CRITERIA.round1;
 export const DEFAULT_ROUNDS: Round[] = [
   { id: 'round1', name: 'Round 1', status: 'not_started', maxMarks: 35, criteria: ROUND_CRITERIA.round1 },
   { id: 'round2', name: 'Round 2', status: 'not_started', maxMarks: 50, criteria: ROUND_CRITERIA.round2 },
-  { id: 'round3', name: 'Round 3 (Side Quest)', status: 'not_started', maxMarks: 25, criteria: ROUND_CRITERIA.round3 },
+  { id: 'round3', name: 'Round 3 (Side Quest)', status: 'not_started', maxMarks: 25, allowNegativeMarks: true, criteria: ROUND_CRITERIA.round3 },
 ];
 
 /**
@@ -49,28 +49,27 @@ export const DEFAULT_ROUNDS: Round[] = [
  * list and fixed 50-mark rounds. Upgrade them to the official per-round scheme.
  */
 export function migrateCompetition(raw: Competition): { competition: Competition; changed: boolean } {
-  if (raw.markingSchemeVersion === MARKING_SCHEME_VERSION) {
-    return { competition: raw, changed: false };
-  }
+  let competition = raw;
+  let changed = false;
 
-  const rounds = raw.rounds.map(round => {
-    const defaultCriteria = ROUND_CRITERIA[round.id];
-    if (!defaultCriteria) return round;
+  if (raw.markingSchemeVersion !== MARKING_SCHEME_VERSION) {
+    const rounds = raw.rounds.map(round => {
+      const defaultCriteria = ROUND_CRITERIA[round.id];
+      if (!defaultCriteria) return round;
 
-    return {
-      ...round,
-      criteria: defaultCriteria,
-      maxMarks: defaultCriteria.reduce((sum, criterion) => sum + criterion.maxMarks, 0),
-    };
-  });
+      return {
+        ...round,
+        criteria: defaultCriteria,
+        maxMarks: defaultCriteria.reduce((sum, criterion) => sum + criterion.maxMarks, 0),
+      };
+    });
 
-  const maximumFinalScore = rounds.reduce(
-    (sum, round) => sum + (round.criteria?.reduce((s, c) => s + c.maxMarks, 0) ?? round.maxMarks),
-    0
-  );
+    const maximumFinalScore = rounds.reduce(
+      (sum, round) => sum + (round.criteria?.reduce((s, c) => s + c.maxMarks, 0) ?? round.maxMarks),
+      0
+    );
 
-  return {
-    competition: {
+    competition = {
       ...raw,
       rounds,
       criteria: rounds[0]?.criteria ?? raw.criteria,
@@ -78,9 +77,27 @@ export function migrateCompetition(raw: Competition): { competition: Competition
       totalRounds: rounds.length,
       markingSchemeVersion: MARKING_SCHEME_VERSION,
       updatedAt: Date.now(),
-    },
-    changed: true,
-  };
+    };
+    changed = true;
+  }
+
+  const needsNegativeMarksOption = competition.rounds.some(
+    round => round.id === 'round3' && round.allowNegativeMarks === undefined
+  );
+  if (needsNegativeMarksOption) {
+    competition = {
+      ...competition,
+      rounds: competition.rounds.map(round =>
+        round.id === 'round3' && round.allowNegativeMarks === undefined
+          ? { ...round, allowNegativeMarks: true }
+          : round
+      ),
+      updatedAt: Date.now(),
+    };
+    changed = true;
+  }
+
+  return { competition, changed };
 }
 
 export async function getCompetition(id = DEFAULT_COMPETITION_ID): Promise<Competition | null> {
